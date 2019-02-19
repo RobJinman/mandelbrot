@@ -1,5 +1,6 @@
 #include <iostream>
 #include "config.hpp"
+#include <GL/glew.h>
 
 
 int main() {
