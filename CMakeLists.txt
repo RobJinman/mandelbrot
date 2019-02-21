@@ -73,3 +73,9 @@ add_executable(mandelbrot ${srcs})
 
 target_link_libraries(mandelbrot ${ALL_LIBS})
 
+add_custom_command(
+  TARGET mandelbrot POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/data
+                                             ${PROJECT_BINARY_DIR}/data
+)
+
