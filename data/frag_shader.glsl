@@ -6,8 +6,8 @@ uniform float H;
 out vec3 color;
 
 int maxIterations = 100;
-float xmin = -2.0;
-float xmax = 2.0;
+float xmin = -2.5;
+float xmax = 1.5;
 float ymin = -2.0;
 float ymax = 2.0;
 
@@ -41,7 +41,7 @@ vec2 screenToWorld(vec2 p) {
 }
 
 vec3 getColour(int i) {
-  float c = i / maxIterations;
+  float c = float(i) / float(maxIterations);
   return vec3(c, c, c);
 }
 
