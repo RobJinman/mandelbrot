@@ -7,6 +7,17 @@ project(Mandelbrot CXX)
 set(Mandelbrot_VERSION_MAJOR 0)
 set(Mandelbrot_VERSION_MINOR 1)
 
+set(PLATFORM_LINUX 0)
+set(PLATFORM_WINDOWS 0)
+set(PLATFORM_OSX 0)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(PLATFORM_LINUX 1)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(PLATFORM_WINDOWS 1)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(PLATFORM_OSX 1)
+endif()
+
 find_package(OpenGL REQUIRED)
 
 set(vendor_dir ${PROJECT_SOURCE_DIR}/vendor)
@@ -36,13 +47,25 @@ endfunction()
 vendor_static_lib(libglew libGLEW)
 vendor_static_lib(libglfw libglfw3)
 
+if (PLATFORM_LINUX)
+  set(
+    PLATFORM_LIBS
+    -lXrandr -lXext -lX11 -lXinerama -lXcursor -lrt -ldl -lXxf86vm -pthread
+  )
+elseif (PLATFORM_WINDOWS)
+  # TODO
+  set(PLATFORM_LIBS)
+elseif (PLATFORM_OSX)
+  # TODO
+  set(PLATFORM_LIBS)
+endif()
+
 set(
   ALL_LIBS
   ${libglew}
   ${libglfw}
   ${OPENGL_LIBRARY}
-  # TODO: This is linux only
-  -lGL -lGLU -lXrandr -lXext -lX11 -lXinerama -lXcursor -lrt -ldl -lXxf86vm -pthread
+  ${PLATFORM_LIBS}
 )
 
 file(GLOB srcs "${PROJECT_SOURCE_DIR}/src/*.cpp")
