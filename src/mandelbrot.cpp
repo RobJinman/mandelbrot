@@ -11,6 +11,9 @@
 using std::string;
 using std::vector;
 
+const int W = 800;
+const int H = 800;
+
 GLuint loadShader(const string& srcPath, GLuint type) {
   GLuint shaderId = glCreateShader(type);
 
@@ -56,11 +59,19 @@ GLuint loadShaders(const string& vertShaderPath, const string& fragShaderPath) {
     std::cerr << errMsg.data() << std::endl;
   }
 
+  GLuint uW = glGetUniformLocation(program, "W");
+  GLuint uH = glGetUniformLocation(program, "H");
+
   glDetachShader(program, vertShader);
   glDetachShader(program, fragShader);
 
   glDeleteShader(vertShader);
   glDeleteShader(fragShader);
+
+  glUseProgram(program);
+
+  glUniform1f(uW, W);
+  glUniform1f(uH, H);
 
   return program;
 }
@@ -76,14 +87,13 @@ int main() {
     return 1;
   }
 
-  glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   GLFWwindow* window = nullptr;
-  window = glfwCreateWindow(1024, 768, "Mandelbrot", NULL, NULL);
+  window = glfwCreateWindow(W, H, "Mandelbrot", NULL, NULL);
 
   if (window == nullptr) {
     std::cerr << "Failed to open GLFW window" << std::endl;
@@ -105,9 +115,12 @@ int main() {
   glBindVertexArray(vertexArray);
 
   static const GLfloat vertexBufferData[] = {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    0.0f, 1.0f, 0.0f
+    -1.0f, -1.0f, 0.0f, // A
+    1.0f, -1.0f, 0.0f,  // B
+    1.0f, 1.0f, 0.0f,   // C
+    -1.0f, -1.0f, 0.0f, // A
+    1.0f, 1.0f, 0.0f,   // C
+    -1.0f, 1.0f, 0.0f,  // D
   };
 
   GLuint vertexBuffer;
@@ -127,7 +140,7 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
 
     glfwSwapBuffers(window);

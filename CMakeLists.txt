@@ -20,7 +20,8 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
-set(vendor_dir ${PROJECT_SOURCE_DIR}/vendor)
+set(VENDOR_DIR ${PROJECT_SOURCE_DIR}/vendor)
+set(DATA_DIR ${PROJECT_SOURCE_DIR}/data)
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/src/config_in.hpp"
@@ -30,16 +31,16 @@ configure_file(
 include_directories(
   "${PROJECT_BINARY_DIR}/include"
   "${PROJECT_SOURCE_DIR}/src"
-  "${PROJECT_SOURCE_DIR}/vendor/include"
+  "${VENDOR_DIR}/include"
 )
 
-link_directories("${PROJECT_SOURCE_DIR}/vendor/lib")
+link_directories("${VENDOR_DIR}/lib")
 
 function(vendor_static_lib var_name lib_name)
   find_library(
     ${var_name}
     NAMES "${lib_name}${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    PATHS "${PROJECT_SOURCE_DIR}/vendor/lib"
+    PATHS "${VENDOR_DIR}/lib"
     NO_DEFAULT_PATH
   )
 endfunction()
@@ -73,9 +74,5 @@ add_executable(mandelbrot ${srcs})
 
 target_link_libraries(mandelbrot ${ALL_LIBS})
 
-add_custom_command(
-  TARGET mandelbrot POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/data
-                                             ${PROJECT_BINARY_DIR}/data
-)
+file(COPY "${DATA_DIR}" DESTINATION "${PROJECT_BINARY_DIR}")
 
