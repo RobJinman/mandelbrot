@@ -2,14 +2,13 @@
 
 uniform float W;
 uniform float H;
+uniform int maxIterations;
+uniform float xmin;
+uniform float xmax;
+uniform float ymin;
+uniform float ymax;
 
 out vec3 color;
-
-int maxIterations = 100;
-float xmin = -2.5;
-float xmax = 1.5;
-float ymin = -2.0;
-float ymax = 2.0;
 
 int testPoint(vec2 p) {
   float x0 = p.x;
