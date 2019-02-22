@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include "mandelbrot.hpp"
 
 using std::string;
@@ -10,7 +11,7 @@ using std::vector;
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
   m_H = H;
-  m_maxIterations = 100;
+  m_maxIterations = 200;
   m_xmin = -2.5;
   m_xmax = 1.5;
   m_ymin = -2.0;
@@ -121,7 +122,24 @@ void Mandelbrot::updateUniforms() {
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {
-  // TODO
+  y = m_H - 1 - y;
+
+  double xRange = m_xmax - m_xmin;
+  double yRange = m_ymax - m_ymin;
+
+  double centreX = m_xmin + xRange * x / m_W;
+  double centreY = m_ymin + yRange * y / m_H;
+
+  double sf = sqrt(mag);
+
+  double xRangeNew = xRange / sf;
+  double yRangeNew = yRange / sf;
+
+  m_xmin = centreX - 0.5 * xRangeNew;
+  m_xmax = centreX + 0.5 * xRangeNew;
+
+  m_ymin = centreY - 0.5 * yRangeNew;
+  m_ymax = centreY + 0.5 * yRangeNew;
 
   updateUniforms();
 }

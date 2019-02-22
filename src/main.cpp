@@ -1,9 +1,12 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
+#include <cmath>
 #include "config.hpp"
 #include "mandelbrot.hpp"
 
-const int W = 800;
-const int H = 800;
+const int W = 600;
+const int H = 600;
 
 GLFWwindow* setupGlWindow() {
   std::cout << "Mandelbrot " << Mandelbrot_VERSION_MAJOR << "."
@@ -42,18 +45,37 @@ GLFWwindow* setupGlWindow() {
   return window;
 }
 
+void dampenCursorPos(double& x, double& y) {
+  double centreX = 0.5 * W;
+  double centreY = 0.5 * H;
+  double dx = x - centreX;
+  double dy = y - centreY;
+
+  double d = sqrt(pow(dx, 2) + pow(dy, 2));
+  double sf = 0.5 * d / W;
+
+  x = centreX + dx * sf;
+  y = centreY + dy * sf;
+}
+
 int main() {
   GLFWwindow* window = setupGlWindow();
   Mandelbrot mandelbrot(W, H);
+
+  glfwSetCursorPos(window, 0.5 * W, 0.5 * H);
 
   do {
     double x = 0;
     double y = 0;
     glfwGetCursorPos(window, &x, &y);
-    mandelbrot.zoom(x, y, 1.1);
+    dampenCursorPos(x, y);
+
+    mandelbrot.zoom(x, y, 1.05);
     mandelbrot.draw();
     glfwSwapBuffers(window);
     glfwPollEvents();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
          glfwWindowShouldClose(window) == 0);
