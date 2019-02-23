@@ -25,20 +25,7 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
   CreateStatusBar();
   SetStatusText("Welcome to wxWidgets!");
 }
-/*
-void MainWindow::dampenCursorPos(double& x, double& y) {
-  double centreX = 0.5 * W;
-  double centreY = 0.5 * H;
-  double dx = x - centreX;
-  double dy = y - centreY;
 
-  double d = sqrt(pow(dx, 2) + pow(dy, 2));
-  double sf = 0.5 * d / W;
-
-  x = centreX + dx * sf;
-  y = centreY + dy * sf;
-}
-*/
 void MainWindow::constructGlCanvas() {
   int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
   m_glPane = new Canvas(this, args, *m_mandelbrot);
