@@ -8,6 +8,7 @@ public:
   Mandelbrot(int W, int H);
 
   void init();
+  void resize(int w, int y);
   void draw();
   void zoom(double x, double y, double mag);
 
@@ -18,6 +19,7 @@ private:
   void initUniforms();
   void updateUniforms();
 
+  bool m_initialised = false;
   int m_W;
   int m_H;
   int m_maxIterations;
@@ -39,4 +41,3 @@ private:
   GLuint m_vertexBuffer;
   GLuint m_program;
 };
-

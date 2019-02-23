@@ -3,6 +3,7 @@
 
 wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_PAINT(Canvas::render)
+  EVT_SIZE(Canvas::resized)
 wxEND_EVENT_TABLE()
 
 Canvas::Canvas(wxFrame* parent, const int* args, Mandelbrot& mandelbrot)
@@ -15,6 +16,13 @@ Canvas::Canvas(wxFrame* parent, const int* args, Mandelbrot& mandelbrot)
   m_context.reset(new wxGLContext(this, nullptr, &attrs));
 
   SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+}
+
+void Canvas::resized(wxSizeEvent& e) {
+  auto sz = e.GetSize();
+  m_mandelbrot.resize(sz.x, sz.y);
+
+  Refresh();
 }
 
 void Canvas::initGl() {

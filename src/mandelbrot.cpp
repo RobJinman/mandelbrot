@@ -18,6 +18,17 @@ Mandelbrot::Mandelbrot(int W, int H) {
   m_ymax = 2.0;
 }
 
+void Mandelbrot::resize(int w, int h) {
+  if (!m_initialised) {
+    return;
+  }
+
+  m_W = w;
+  m_H = h;
+  glViewport(0, 0, w, h);
+  updateUniforms();
+}
+
 void Mandelbrot::init() {
   GLuint vertexArray;
   glGenVertexArrays(1, &vertexArray);
@@ -40,6 +51,8 @@ void Mandelbrot::init() {
   loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl");
 
   initUniforms();
+
+  m_initialised = true;
 }
 
 void Mandelbrot::initUniforms() {
@@ -120,6 +133,10 @@ void Mandelbrot::updateUniforms() {
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {
+  if (!m_initialised) {
+    return;
+  }
+
   y = m_H - 1 - y;
 
   double xRange = m_xmax - m_xmin;
@@ -143,6 +160,10 @@ void Mandelbrot::zoom(double x, double y, double mag) {
 }
 
 void Mandelbrot::draw() {
+  if (!m_initialised) {
+    return;
+  }
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(m_program);
 
