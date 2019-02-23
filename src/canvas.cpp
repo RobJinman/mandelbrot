@@ -1,10 +1,13 @@
 #include "canvas.hpp"
+#include "exception.hpp"
 #include "mandelbrot.hpp"
 
 namespace chrono = std::chrono;
 
 const double TARGET_FPS = 10.0;
 const double ZOOM_PER_FRAME = 1.05;
+
+wxDEFINE_EVENT(FLY_THROUGH_MODE_TOGGLED, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_PAINT(Canvas::onPaint)
@@ -53,25 +56,37 @@ wxPoint Canvas::getCursorPos() const {
   return pt - GetScreenPosition();
 }
 
+void Canvas::activateFlyThroughMode() {
+  centreCursor();
+  m_timer->Start(1000.0 / TARGET_FPS);
+  m_flyThroughMode = true;
+
+  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLED);
+  event.SetInt(TOGGLED_ON);
+  wxPostEvent(this, event);
+}
+
+void Canvas::deactivateFlyThroughMode() {
+  m_timer->Stop();
+  m_flyThroughMode = false;
+
+  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLED);
+  event.SetInt(TOGGLED_OFF);
+  wxPostEvent(this, event);
+}
+
 void Canvas::onKeyPress(wxKeyEvent& e) {
   auto key = e.GetKeyCode();
 
   if (key == 'F') {
-    std::cout << m_measuredFrameRate << "\n";
+    std::cout << m_measuredFrameRate << std::endl;
   }
   else if (key == 'Z') {
-    if (!m_flyThroughMode) {
-      std::cout << "Activating flythough mode\n";
-
-      centreCursor();
-      m_timer->Start(1000.0 / TARGET_FPS);
-      m_flyThroughMode = true;
+    if (m_flyThroughMode) {
+      deactivateFlyThroughMode();
     }
     else {
-      std::cout << "Deactivating flythough mode\n";
-
-      m_timer->Stop();
-      m_flyThroughMode = false;
+      activateFlyThroughMode();
     }
   }
 }
@@ -85,8 +100,7 @@ void Canvas::initGl() {
 
   glewExperimental = true;
   if (glewInit() != GLEW_OK) {
-    std::cerr << "Failed to initialize GLEW" << std::endl;
-    exit(1);
+    EXCEPTION("Failed to initialize GLEW");
   }
 
   m_mandelbrot.init();
@@ -98,8 +112,10 @@ void Canvas::initGl() {
 
 void Canvas::measureFrameRate() {
   if (m_frame % 10 == 0) {
-    chrono::high_resolution_clock::time_point t_ = chrono::high_resolution_clock::now();
-    chrono::duration<double> span = chrono::duration_cast<chrono::duration<double>>(t_ - m_t);
+    chrono::high_resolution_clock::time_point t_ =
+      chrono::high_resolution_clock::now();
+    chrono::duration<double> span = 
+      chrono::duration_cast<chrono::duration<double>>(t_ - m_t);
     m_measuredFrameRate = 10.0 / span.count();
     m_t = t_;
   }

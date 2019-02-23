@@ -48,4 +48,3 @@ void main() {
   int i = testPoint(screenToWorld(gl_FragCoord.xy));
   color = vec3(getColour(i));
 }
-

@@ -1,9 +1,9 @@
 #include <string>
 #include <fstream>
-#include <iostream>
 #include <vector>
 #include <cmath>
 #include "mandelbrot.hpp"
+#include "exception.hpp"
 
 using std::string;
 using std::vector;
@@ -11,7 +11,7 @@ using std::vector;
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
   m_H = H;
-  m_maxIterations = 200;
+  m_maxIterations = 250;
   m_xmin = -2.5;
   m_xmax = 1.5;
   m_ymin = -2.0;
@@ -86,7 +86,7 @@ GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type) {
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
     glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data());
-    std::cerr << errMsg.data() << std::endl;
+    EXCEPTION(errMsg.data());
   }
 
   return shaderId;
@@ -110,7 +110,7 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
     glGetProgramInfoLog(m_program, infoLogLen, NULL, errMsg.data());
-    std::cerr << errMsg.data() << std::endl;
+    EXCEPTION(errMsg.data());
   }
 
   glDetachShader(m_program, vertShader);

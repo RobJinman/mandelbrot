@@ -13,13 +13,13 @@ private:
   void constructMenu();
   void constructGlCanvas();
 
-  void onHello(wxCommandEvent& event);
-  void onExit(wxCommandEvent& event);
-  void onAbout(wxCommandEvent& event);
+  void onExit(wxCommandEvent& e);
+  void onAbout(wxCommandEvent& e);
+  void onFlyThroughModeToggle(wxCommandEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
   wxBoxSizer* m_hbox;
-  Canvas* m_glPane;
+  Canvas* m_canvas;
 
   wxDECLARE_EVENT_TABLE();
 };

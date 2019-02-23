@@ -1,11 +1,8 @@
+#include <sstream>
 #include "main_window.hpp"
-
-enum {
-  ID_hello = 1
-};
+#include "config.hpp"
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
-  EVT_MENU(ID_hello, MainWindow::onHello)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
 wxEND_EVENT_TABLE()
@@ -23,21 +20,20 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
   constructGlCanvas();
 
   CreateStatusBar();
-  SetStatusText("Welcome to wxWidgets!");
+  SetStatusText("");
 }
 
 void MainWindow::constructGlCanvas() {
   int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
-  m_glPane = new Canvas(this, args, *m_mandelbrot);
+  m_canvas = new Canvas(this, args, *m_mandelbrot);
+  m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
+                 this);
 
-  m_hbox->Add(m_glPane, 1, wxEXPAND);
+  m_hbox->Add(m_canvas, 1, wxEXPAND);
 }
 
 void MainWindow::constructMenu() {
   wxMenu* mnuFile = new wxMenu;
-  mnuFile->Append(ID_hello, "&hello...\tCtrl-H",
-                  "Help string shown in status bar for this menu item");
-  mnuFile->AppendSeparator();
   mnuFile->Append(wxID_EXIT);
   
   wxMenu* mnuHelp = new wxMenu;
@@ -50,24 +46,54 @@ void MainWindow::constructMenu() {
   SetMenuBar(menuBar);
 }
 
-void MainWindow::onHello(wxCommandEvent& event) {
-  wxLogMessage("Hello world from wxWidgets!");
+void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
+  if (e.GetInt() == TOGGLED_ON) {
+    SetStatusText("Fly through mode activated");
+  }
+  else if (e.GetInt() == TOGGLED_OFF) {
+    SetStatusText("Fly through mode deactivated");
+  }
 }
 
-void MainWindow::onExit(wxCommandEvent& event) {
+void MainWindow::onExit(wxCommandEvent&) {
   Close(true);
 }
 
-void MainWindow::onAbout(wxCommandEvent& event) {
-  wxMessageBox("Blah blah", "Hello", wxOK | wxICON_INFORMATION);
+static std::string versionString() {
+  std::stringstream ss;
+  ss << "Mandelbrot " << Mandelbrot_VERSION_MAJOR << "."
+     << Mandelbrot_VERSION_MINOR;
+  return ss.str();
+}
+
+void MainWindow::onAbout(wxCommandEvent&) {
+  std::stringstream ss;
+  ss << "The Mandelbrot fractal rendered on the GPU inside a fragment shader"
+     << std::endl << std::endl;
+  ss << "Author: Rob Jinman <jinmanr@gmail.com>" << std::endl << std::endl;
+  ss << "Copyright Rob Jinman 2019. All rights reserved.";
+
+  wxMessageBox(ss.str(), versionString(), wxOK | wxICON_INFORMATION);
 }
 
 class MyApp : public wxApp {
 public:
   virtual bool OnInit() override {
-    MainWindow* frame = new MainWindow("Mandelbrot", wxSize(400, 400));
+    MainWindow* frame = new MainWindow(versionString(), wxSize(400, 400));
     frame->Show();
     return true;
+  }
+
+  virtual void HandleEvent(wxEvtHandler* handler, wxEventFunction func,
+                           wxEvent& event) const override {
+    try {
+      wxApp::HandleEvent(handler, func, event);
+    }
+    catch (const std::runtime_error& e) {
+      std::cerr << "A fatal exception occurred: " << std::endl;
+      std::cerr << e.what();
+      exit(1);
+    }
   }
 };
 
