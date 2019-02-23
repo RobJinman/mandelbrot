@@ -1,18 +1,17 @@
 #pragma once
 
 #include <string>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "gl.hpp"
 
 class Mandelbrot {
 public:
   Mandelbrot(int W, int H);
 
+  void init();
   void draw();
   void zoom(double x, double y, double mag);
 
 private:
-  void setupGl();
   void loadShaders(const std::string& fragShaderPath,
                    const std::string& vertShaderPath);
   GLuint loadShader(const std::string& path, GLuint type);

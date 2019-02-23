@@ -16,11 +16,9 @@ Mandelbrot::Mandelbrot(int W, int H) {
   m_xmax = 1.5;
   m_ymin = -2.0;
   m_ymax = 2.0;
-
-  setupGl();
 }
 
-void Mandelbrot::setupGl() {
+void Mandelbrot::init() {
   GLuint vertexArray;
   glGenVertexArrays(1, &vertexArray);
   glBindVertexArray(vertexArray);

@@ -54,7 +54,6 @@ function(find_vendor_libs RESULT LIB_NAMES)
 endfunction()
 
 set(VENDOR_LIB_NAMES libGLEW
-                     libglfw3
                      libwx_gtk2u_gl-3.1
                      libwx_gtk2u_core-3.1
                      libwx_baseu-3.1)
