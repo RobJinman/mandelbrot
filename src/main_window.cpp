@@ -76,7 +76,7 @@ void MainWindow::onAbout(wxCommandEvent&) {
   wxMessageBox(ss.str(), versionString(), wxOK | wxICON_INFORMATION);
 }
 
-class MyApp : public wxApp {
+class Application : public wxApp {
 public:
   virtual bool OnInit() override {
     MainWindow* frame = new MainWindow(versionString(), wxSize(400, 400));
@@ -97,4 +97,4 @@ public:
   }
 };
 
-wxIMPLEMENT_APP(MyApp);
+wxIMPLEMENT_APP(Application);

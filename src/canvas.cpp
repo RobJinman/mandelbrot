@@ -98,9 +98,10 @@ void Canvas::initGl() {
 
   wxGLCanvas::SetCurrent(*m_context);
 
-  glewExperimental = true;
-  if (glewInit() != GLEW_OK) {
-    EXCEPTION("Failed to initialize GLEW");
+  glewExperimental = GL_TRUE;
+  GLenum result = glewInit();
+  if (result != GLEW_OK) {
+    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
   }
 
   m_mandelbrot.init();
