@@ -1,9 +1,12 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include "gl.hpp"
 
+extern const std::map<std::string, std::string> PRESETS;
 const int DEFAULT_MAX_ITERATIONS = 100;
+const std::string DEFAULT_COLOUR_SCHEME = "monochrome";
 
 class Mandelbrot {
 public:
@@ -15,7 +18,8 @@ public:
   void zoom(double x, double y, double mag);
 
   void setMaxIterations(int maxI);
-  void setColourScheme(const std::string& computeColourImpl);
+  void setColourScheme(const std::string& presetName);
+  void setColourSchemeImpl(const std::string& computeColourImpl);
 
   double getXMin() const;
   double getXMax() const;

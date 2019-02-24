@@ -19,17 +19,22 @@ private:
   wxStaticBox* constructColourSchemePanel(wxWindow* parent);
   wxStaticBox* constructParamsPanel(wxWindow* parent);
   wxStaticBox* constructInfoPanel(wxWindow* parent);
+  wxStaticBox* constructExportPanel(wxWindow* parent);
   void constructInfoPage();
   void constructParamsPage();
   void constructColourSchemePage();
+  void constructExportPage();
 
   void onRender();
+  void applyColourScheme();
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
   void onApplyParamsClick(wxCommandEvent& e);
   void onApplyColourSchemeClick(wxCommandEvent& e);
+  void onExportClick(wxCommandEvent& e);
+  void onSelectColourScheme(wxCommandEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
   wxSplitterWindow* m_splitter;
@@ -38,7 +43,9 @@ private:
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
   wxTextCtrl* m_txtComputeColourImpl;
-  wxTextCtrl* m_txtComputeColourImplCompileStatus;
+  wxTextCtrl* m_txtCompileStatus;
+  wxTextCtrl* m_txtExportWidth;
+  wxTextCtrl* m_txtExportHeight;
 
   struct {
     wxStaticText* txtMagLevel;

@@ -9,12 +9,23 @@
 using std::string;
 using std::vector;
 
-static const std::map<string, string> PRESETS = {
+const std::map<string, string> PRESETS = {
   {
     "monochrome",
 
-    "float c = float(i) / float(maxIterations);"
+    "float c = float(i) / float(maxIterations);\n"
     "return vec3(c, c, c);"
+  },
+  {
+    "colourful",
+
+    "int r_ = i % 41;\n"
+    "int g_ = i % 51;\n"
+    "int b_ = i % 61;\n"
+    "float r = r_ / 40.0;\n"
+    "float g = g_ / 50.0;\n"
+    "float b = b_ / 60.0;\n"
+    "return vec3(r, g, b);"
   },
 };
 
@@ -151,7 +162,7 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   m_activeComputeColourImpl = computeColourImpl;
 }
 
-void Mandelbrot::setColourScheme(const string& computeColourImpl) {
+void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
   try {
     glDeleteProgram(m_program);
     loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
@@ -164,6 +175,10 @@ void Mandelbrot::setColourScheme(const string& computeColourImpl) {
 
     throw;
   }
+}
+
+void Mandelbrot::setColourScheme(const string& presetName) {
+  setColourSchemeImpl(PRESETS.at(presetName));
 }
 
 void Mandelbrot::updateUniforms() {
