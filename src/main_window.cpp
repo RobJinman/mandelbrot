@@ -6,6 +6,9 @@
 #include "exception.hpp"
 #include "wx_helpers.hpp"
 
+static const int WINDOW_W = 1000;
+static const int WINDOW_H = 600;
+
 static std::string formatDouble(double d) {
   std::stringstream ss;
   ss << std::scientific << d;
@@ -91,7 +94,7 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   cboScheme->Bind(wxEVT_CHOICE, &MainWindow::onSelectColourScheme, this);
 
   auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
-    "vec3 getColour(int i) {");
+    "vec3 computeColour(int i, float x, float y) {");
   m_txtComputeColourImpl = constructTextBox(box,
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
                                             true);
@@ -374,7 +377,8 @@ void MainWindow::onAbout(wxCommandEvent&) {
 class Application : public wxApp {
 public:
   virtual bool OnInit() override {
-    MainWindow* frame = new MainWindow(versionString(), wxSize(800, 500));
+    MainWindow* frame = new MainWindow(versionString(),
+                                       wxSize(WINDOW_W, WINDOW_H));
     frame->Show();
     return true;
   }
@@ -384,9 +388,14 @@ public:
     try {
       wxApp::HandleEvent(handler, func, event);
     }
+    catch (const ShaderException& e) {
+      std::cerr << "A fatal exception occurred: " << std::endl;
+      std::cerr << e.what() << ": " << e.errorOutput() << std::endl;
+      exit(1);
+    }
     catch (const std::runtime_error& e) {
       std::cerr << "A fatal exception occurred: " << std::endl;
-      std::cerr << e.what();
+      std::cerr << e.what() << std::endl;
       exit(1);
     }
   }

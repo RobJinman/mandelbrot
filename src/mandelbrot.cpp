@@ -14,19 +14,33 @@ const std::map<string, string> PRESETS = {
     "monochrome",
 
     "float c = float(i) / float(maxIterations);\n"
-    "return vec3(c, c, c);"
+    "return vec3(c, c, c);\n"
   },
   {
-    "colourful",
+    "coloured",
 
-    "int r_ = i % 41;\n"
-    "int g_ = i % 51;\n"
-    "int b_ = i % 61;\n"
-    "float r = r_ / 40.0;\n"
-    "float g = g_ / 50.0;\n"
-    "float b = b_ / 60.0;\n"
-    "return vec3(r, g, b);"
+    "float c = float(i) / float(maxIterations);\n"
+    "return (1.0 - c) * hueToRgb(c);\n"
   },
+  {
+    "spacey",
+
+    "float c = float(i) / float(maxIterations);\n"
+    "return 0.7 * c * c * hueToRgb(c * 0.5 + 0.65);\n"
+  },
+  {
+    "jazzy",
+
+    "float c = float(i) / float(maxIterations);\n"
+    "return (1.0 - c) * hueToRgb(c * 10.0);\n"
+  },
+  {
+    "rainbow",
+
+    "float c = float(i) / float(maxIterations);\n"
+    "float r = sqrt(x * x + y * y) / 2.0;\n"
+    "return (1.0 - c) * hueToRgb(c + r);\n"
+  }
 };
 
 static const string COMPUTE_COLOUR_IMPL_SEARCH_STRING = "COMPUTE_COLOUR_IMPL";
