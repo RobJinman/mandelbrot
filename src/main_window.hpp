@@ -14,6 +14,7 @@ private:
   void constructMenu();
   void constructLeftPanel();
   void constructRightPanel();
+  wxStaticBox* constructParamsPanel(wxWindow* parent);
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);

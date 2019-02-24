@@ -3,6 +3,31 @@
 #include "main_window.hpp"
 #include "config.hpp"
 
+struct WidgetAndHBox {
+  wxWindow* widget;
+  wxBoxSizer* hbox;
+};
+
+static WidgetAndHBox constructTextField(wxWindow* parent, const wxString& label,
+                                        bool multiline = false) {
+
+  WidgetAndHBox ctrl;
+  ctrl.widget = new wxTextCtrl(parent, wxID_ANY, "",
+                               wxDefaultPosition, wxDefaultSize,
+                               multiline ? wxTE_MULTILINE : 0L);
+
+  ctrl.hbox = new wxBoxSizer(wxHORIZONTAL);
+
+  if (label.length() > 0) {
+    auto lblLabel = new wxStaticText(parent, wxID_ANY, label);
+    ctrl.hbox->Add(lblLabel, 0, wxRIGHT, 8);
+  }
+
+  ctrl.hbox->Add(ctrl.widget, 1);
+
+  return ctrl;
+}
+
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
@@ -43,25 +68,58 @@ void MainWindow::constructLeftPanel() {
 }
 
 static wxStaticBox* constructFlyThroughPanel(wxWindow* parent) {
-  auto boxFlyThrough = new wxStaticBox(parent, wxID_ANY,
-                                       wxGetTranslation("Fly-Through Mode"));
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Fly-Through Mode"));
 
-  auto grid = new wxGridBagSizer(6, 6);
-  boxFlyThrough->SetSizer(grid);
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  box->SetSizer(vbox);
 
   auto strFlyThrough = "With the left panel in focus, press the Z key to toggle"
                        " Fly-Through mode.";
-  auto txtFlyThrough = new wxTextCtrl(boxFlyThrough, wxID_ANY,
-                                      wxGetTranslation(strFlyThrough),
-                                      wxDefaultPosition, wxDefaultSize,
-                                      wxTE_MULTILINE);
+
+  auto ctrlFlyThrough = constructTextField(box, "", true);
+  auto txtFlyThrough = dynamic_cast<wxTextCtrl*>(ctrlFlyThrough.widget);
   txtFlyThrough->SetEditable(false);
+  txtFlyThrough->SetValue(wxGetTranslation(strFlyThrough));
 
-  grid->Add(txtFlyThrough, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
+  vbox->Add(ctrlFlyThrough.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
-  grid->AddGrowableCol(1, 1);
+  return box;
+}
 
-  return boxFlyThrough;
+static wxStaticBox* constructColourSchemePanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Colour Scheme"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  box->SetSizer(vbox);
+
+  auto lblShaderCodePre = new wxStaticText(box, wxID_ANY,
+    "vec3 getColour(int i) {");
+  auto ctrlShaderCode = constructTextField(box, "  ", true);
+  auto lblShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+
+  vbox->Add(lblShaderCodePre);
+  vbox->Add(ctrlShaderCode.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(lblShaderCodePost);
+
+  return box;
+}
+
+wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Render Params"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  box->SetSizer(vbox);
+
+  auto ctrlMaxIterations = constructTextField(box, "Max iterations");
+  m_txtMaxIterations = dynamic_cast<wxTextCtrl*>(ctrlMaxIterations.widget);
+  m_txtMaxIterations->AppendText(std::to_string(DEFAULT_MAX_ITERATIONS));
+
+  vbox->Add(ctrlMaxIterations.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
+  return box;
 }
 
 void MainWindow::constructRightPanel() {
@@ -71,23 +129,22 @@ void MainWindow::constructRightPanel() {
   m_rightPanel->SetSizer(grid);
 
   auto flyThroughPanel = constructFlyThroughPanel(m_rightPanel);
-
-  auto lblMaxIterations = new wxStaticText(m_rightPanel, wxID_ANY,
-                                           wxGetTranslation("Max iterations"));
-
-  m_txtMaxIterations = new wxTextCtrl(m_rightPanel, wxID_ANY);
-  m_txtMaxIterations->AppendText(std::to_string(DEFAULT_MAX_ITERATIONS));
+  auto colourSchemePanel = constructColourSchemePanel(m_rightPanel);
+  auto paramsPanel = constructParamsPanel(m_rightPanel);
 
   auto btnApply = new wxButton(m_rightPanel, wxID_ANY, "Apply");
   btnApply->Bind(wxEVT_BUTTON, &MainWindow::onBtnApplyClick, this);
 
   grid->Add(flyThroughPanel, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
-  grid->Add(lblMaxIterations, wxGBPosition(1, 0), wxGBSpan(1, 1), wxEXPAND);
-  grid->Add(m_txtMaxIterations, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND);
-  grid->Add(btnApply, wxGBPosition(3, 1));
+  grid->Add(colourSchemePanel, wxGBPosition(1, 0), wxGBSpan(1, 2), wxEXPAND);
+  grid->Add(paramsPanel, wxGBPosition(2, 0), wxGBSpan(1, 2), wxEXPAND);
+  grid->Add(btnApply, wxGBPosition(3, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxLEFT | wxRIGHT);
 
-  grid->AddGrowableRow(0, 1);
   grid->AddGrowableCol(1, 1);
+  grid->AddGrowableRow(0, 1);
+  grid->AddGrowableRow(1, 1);
+  grid->AddGrowableRow(2, 1);
 }
 
 void MainWindow::constructMenu() {
@@ -126,10 +183,10 @@ void MainWindow::onBtnApplyClick(wxCommandEvent& e) {
 
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
   if (e.GetInt() == TOGGLED_ON) {
-    SetStatusText(wxGetTranslation("Fly through mode activated"));
+    SetStatusText(wxGetTranslation("Fly-Through mode activated"));
   }
   else if (e.GetInt() == TOGGLED_OFF) {
-    SetStatusText(wxGetTranslation("Fly through mode deactivated"));
+    SetStatusText(wxGetTranslation("Fly-Through mode deactivated"));
   }
 }
 
