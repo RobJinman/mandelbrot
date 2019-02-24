@@ -106,7 +106,7 @@ GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
     glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data());
-    EXCEPTION(errMsg.data());
+    throw ShaderException(errMsg.data());
   }
 
   return shaderId;
@@ -132,7 +132,7 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
     glGetProgramInfoLog(m_program, infoLogLen, NULL, errMsg.data());
-    EXCEPTION(errMsg.data());
+    throw ShaderException(errMsg.data());
   }
 
   glDetachShader(m_program, vertShader);
@@ -142,13 +142,23 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   glDeleteShader(fragShader);
 
   glUseProgram(m_program);
+
+  m_activeComputeColourImpl = computeColourImpl;
 }
 
 void Mandelbrot::setColourScheme(const string& computeColourImpl) {
-  glDeleteProgram(m_program);
-  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-              computeColourImpl);
-  updateUniforms();
+  try {
+    glDeleteProgram(m_program);
+    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
+                computeColourImpl);
+    updateUniforms();
+  }
+  catch (const ShaderException&) {
+    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
+                m_activeComputeColourImpl);
+
+    throw;
+  }
 }
 
 void Mandelbrot::updateUniforms() {

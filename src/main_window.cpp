@@ -2,6 +2,7 @@
 #include <wx/gbsizer.h>
 #include "main_window.hpp"
 #include "config.hpp"
+#include "exception.hpp"
 
 struct WidgetAndHBox {
   wxWindow* widget;
@@ -99,6 +100,10 @@ wxStaticBox* MainWindow::constructColourSchemePanel() {
   auto ctrlShaderCode = constructTextField(box, "  ", true);
   m_txtComputeColourImpl = dynamic_cast<wxTextCtrl*>(ctrlShaderCode.widget);
   auto lblShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+  auto ctrlCompileStatus = constructTextField(box, "", true);
+  m_txtComputeColourImplCompileStatus =
+    dynamic_cast<wxTextCtrl*>(ctrlCompileStatus.widget);
+  m_txtComputeColourImplCompileStatus->SetEditable(false);
 
   auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
   btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyColourSchemeClick, this);
@@ -106,6 +111,7 @@ wxStaticBox* MainWindow::constructColourSchemePanel() {
   vbox->Add(lblShaderCodePre);
   vbox->Add(ctrlShaderCode.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(lblShaderCodePost);
+  vbox->Add(ctrlCompileStatus.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   return box;
@@ -186,9 +192,15 @@ void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
 }
 
 void MainWindow::onApplyColourSchemeClick(wxCommandEvent& e) {
-  std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
-  m_mandelbrot->setColourScheme(code);
-  m_canvas->Refresh();
+  try {
+    std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
+    m_mandelbrot->setColourScheme(code);
+    m_canvas->Refresh();
+    m_txtComputeColourImplCompileStatus->SetValue(wxGetTranslation("Success"));
+  }
+  catch (const ShaderException& e) {
+    m_txtComputeColourImplCompileStatus->SetValue(e.errorOutput());
+  }
 }
 
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {

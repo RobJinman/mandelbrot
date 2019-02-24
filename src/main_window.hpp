@@ -31,6 +31,7 @@ private:
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
   wxTextCtrl* m_txtComputeColourImpl;
+  wxTextCtrl* m_txtComputeColourImplCompileStatus;
 
   wxDECLARE_EVENT_TABLE();
 };

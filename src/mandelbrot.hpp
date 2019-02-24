@@ -34,6 +34,7 @@ private:
   double m_xmax;
   double m_ymin;
   double m_ymax;
+  std::string m_activeComputeColourImpl;
 
   struct {
     GLuint uW;
