@@ -2,11 +2,23 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <map>
 #include "mandelbrot.hpp"
 #include "exception.hpp"
 
 using std::string;
 using std::vector;
+
+static const std::map<string, string> PRESETS = {
+  {
+    "monochrome",
+
+    "float c = float(i) / float(maxIterations);"
+    "return vec3(c, c, c);"
+  },
+};
+
+static const string COMPUTE_COLOUR_IMPL_SEARCH_STRING = "COMPUTE_COLOUR_IMPL";
 
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
@@ -48,7 +60,8 @@ void Mandelbrot::init() {
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData), vertexBufferData,
                GL_STATIC_DRAW);
 
-  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl");
+  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
+              PRESETS.at("monochrome"));
 
   initUniforms();
 
@@ -67,12 +80,19 @@ void Mandelbrot::initUniforms() {
   updateUniforms();
 }
 
-GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type) {
+GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
+                              const string& computeColourImpl) {
   GLuint shaderId = glCreateShader(type);
 
   std::ifstream fin(srcPath);
   string shaderSrc{std::istreambuf_iterator<char>(fin),
                    std::istreambuf_iterator<char>()};
+
+  if (type == GL_FRAGMENT_SHADER) {
+    auto idx = shaderSrc.find(COMPUTE_COLOUR_IMPL_SEARCH_STRING);
+    auto len = COMPUTE_COLOUR_IMPL_SEARCH_STRING.length();
+    shaderSrc.replace(idx, len, computeColourImpl);
+  }
 
   GLint result = GL_FALSE;
   int infoLogLen = 0;
@@ -93,9 +113,11 @@ GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type) {
 }
 
 void Mandelbrot::loadShaders(const string& vertShaderPath,
-                             const string& fragShaderPath) {
+                             const string& fragShaderPath,
+                             const string& computeColourImpl) {
   GLuint vertShader = loadShader(vertShaderPath, GL_VERTEX_SHADER);
-  GLuint fragShader = loadShader(fragShaderPath, GL_FRAGMENT_SHADER);
+  GLuint fragShader = loadShader(fragShaderPath, GL_FRAGMENT_SHADER,
+                                 computeColourImpl);
 
   m_program = glCreateProgram();
   glAttachShader(m_program, vertShader);
@@ -120,6 +142,13 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   glDeleteShader(fragShader);
 
   glUseProgram(m_program);
+}
+
+void Mandelbrot::setColourScheme(const string& computeColourImpl) {
+  glDeleteProgram(m_program);
+  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
+              computeColourImpl);
+  updateUniforms();
 }
 
 void Mandelbrot::updateUniforms() {

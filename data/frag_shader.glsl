@@ -39,12 +39,11 @@ vec2 screenToWorld(vec2 p) {
   return vec2(xmin + w * p.x / W, ymin + h * p.y / H);
 }
 
-vec3 getColour(int i) {
-  float c = float(i) / float(maxIterations);
-  return vec3(c, c, c);
+vec3 computeColour(int i) {
+COMPUTE_COLOUR_IMPL
 }
 
 void main() {
   int i = testPoint(screenToWorld(gl_FragCoord.xy));
-  color = vec3(getColour(i));
+  color = vec3(computeColour(i));
 }

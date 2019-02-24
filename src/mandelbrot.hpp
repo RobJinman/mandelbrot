@@ -15,11 +15,14 @@ public:
   void zoom(double x, double y, double mag);
 
   void setMaxIterations(int maxI);
+  void setColourScheme(const std::string& computeColourImpl);
 
 private:
   void loadShaders(const std::string& fragShaderPath,
-                   const std::string& vertShaderPath);
-  GLuint loadShader(const std::string& path, GLuint type);
+                   const std::string& vertShaderPath,
+                   const std::string& computeColourImpl);
+  GLuint loadShader(const std::string& path, GLuint type,
+                    const std::string& computeColourImpl = "");
   void initUniforms();
   void updateUniforms();
 

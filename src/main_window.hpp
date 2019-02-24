@@ -14,12 +14,15 @@ private:
   void constructMenu();
   void constructLeftPanel();
   void constructRightPanel();
-  wxStaticBox* constructParamsPanel(wxWindow* parent);
+  wxStaticBox* constructFlyThroughPanel();
+  wxStaticBox* constructColourSchemePanel();
+  wxStaticBox* constructParamsPanel();
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
-  void onBtnApplyClick(wxCommandEvent& e);
+  void onApplyParamsClick(wxCommandEvent& e);
+  void onApplyColourSchemeClick(wxCommandEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
   wxSplitterWindow* m_splitter;
@@ -27,6 +30,7 @@ private:
   wxPanel* m_rightPanel;
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
+  wxTextCtrl* m_txtComputeColourImpl;
 
   wxDECLARE_EVENT_TABLE();
 };

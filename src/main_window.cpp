@@ -67,8 +67,8 @@ void MainWindow::constructLeftPanel() {
                  this);
 }
 
-static wxStaticBox* constructFlyThroughPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
+wxStaticBox* MainWindow::constructFlyThroughPanel() {
+  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
                              wxGetTranslation("Fly-Through Mode"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
@@ -87,8 +87,8 @@ static wxStaticBox* constructFlyThroughPanel(wxWindow* parent) {
   return box;
 }
 
-static wxStaticBox* constructColourSchemePanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
+wxStaticBox* MainWindow::constructColourSchemePanel() {
+  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
                              wxGetTranslation("Colour Scheme"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
@@ -97,17 +97,22 @@ static wxStaticBox* constructColourSchemePanel(wxWindow* parent) {
   auto lblShaderCodePre = new wxStaticText(box, wxID_ANY,
     "vec3 getColour(int i) {");
   auto ctrlShaderCode = constructTextField(box, "  ", true);
+  m_txtComputeColourImpl = dynamic_cast<wxTextCtrl*>(ctrlShaderCode.widget);
   auto lblShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+
+  auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
+  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyColourSchemeClick, this);
 
   vbox->Add(lblShaderCodePre);
   vbox->Add(ctrlShaderCode.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(lblShaderCodePost);
+  vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   return box;
 }
 
-wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
+wxStaticBox* MainWindow::constructParamsPanel() {
+  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
                              wxGetTranslation("Render Params"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
@@ -117,7 +122,11 @@ wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
   m_txtMaxIterations = dynamic_cast<wxTextCtrl*>(ctrlMaxIterations.widget);
   m_txtMaxIterations->AppendText(std::to_string(DEFAULT_MAX_ITERATIONS));
 
-  vbox->Add(ctrlMaxIterations.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
+  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
+
+  vbox->Add(ctrlMaxIterations.hbox, 0, wxEXPAND | wxRIGHT, 10);
+  vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   return box;
 }
@@ -128,18 +137,13 @@ void MainWindow::constructRightPanel() {
   auto grid = new wxGridBagSizer(6, 6);
   m_rightPanel->SetSizer(grid);
 
-  auto flyThroughPanel = constructFlyThroughPanel(m_rightPanel);
-  auto colourSchemePanel = constructColourSchemePanel(m_rightPanel);
-  auto paramsPanel = constructParamsPanel(m_rightPanel);
-
-  auto btnApply = new wxButton(m_rightPanel, wxID_ANY, "Apply");
-  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onBtnApplyClick, this);
+  auto flyThroughPanel = constructFlyThroughPanel();
+  auto colourSchemePanel = constructColourSchemePanel();
+  auto paramsPanel = constructParamsPanel();
 
   grid->Add(flyThroughPanel, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
   grid->Add(colourSchemePanel, wxGBPosition(1, 0), wxGBSpan(1, 2), wxEXPAND);
   grid->Add(paramsPanel, wxGBPosition(2, 0), wxGBSpan(1, 2), wxEXPAND);
-  grid->Add(btnApply, wxGBPosition(3, 1), wxGBSpan(1, 1),
-            wxEXPAND | wxLEFT | wxRIGHT);
 
   grid->AddGrowableCol(1, 1);
   grid->AddGrowableRow(0, 1);
@@ -173,12 +177,18 @@ static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
   return true;
 }
 
-void MainWindow::onBtnApplyClick(wxCommandEvent& e) {
+void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
   int maxI = 0;
   if (tryGetIntFromTextCtrl(*m_txtMaxIterations, maxI)) {
     m_mandelbrot->setMaxIterations(maxI);
     m_canvas->Refresh();
   }
+}
+
+void MainWindow::onApplyColourSchemeClick(wxCommandEvent& e) {
+  std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
+  m_mandelbrot->setColourScheme(code);
+  m_canvas->Refresh();
 }
 
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
