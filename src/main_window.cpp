@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iomanip>
 #include <wx/gbsizer.h>
 #include "main_window.hpp"
 #include "config.hpp"
@@ -34,6 +35,12 @@ static WidgetAndHBox constructTextField(wxWindow* parent, const wxString& label,
   ctrl.hbox->Add(ctrl.widget, 1);
 
   return ctrl;
+}
+
+static std::string formatDouble(double d) {
+  std::stringstream ss;
+  ss << std::scientific << d;
+  return ss.str();
 }
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
@@ -156,23 +163,23 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   double magnification = m_mandelbrot->computeMagnification();
 
   auto ctrlMagLevel = constructTextField(box, "Magnification",
-                                        std::to_string(magnification) + "X",
+                                        formatDouble(magnification),
                                         false, true);
 
   auto ctrlXMin = constructTextField(box, "x-min",
-                                     std::to_string(m_mandelbrot->getXMin()),
+                                     formatDouble(m_mandelbrot->getXMin()),
                                      false, true);
 
   auto ctrlXMax = constructTextField(box, "x-max",
-                                     std::to_string(m_mandelbrot->getXMax()),
+                                     formatDouble(m_mandelbrot->getXMax()),
                                      false, true);
 
   auto ctrlYMin = constructTextField(box, "y-min",
-                                     std::to_string(m_mandelbrot->getYMin()),
+                                     formatDouble(m_mandelbrot->getYMin()),
                                      false, true);
 
   auto ctrlYMax = constructTextField(box, "y-max",
-                                     std::to_string(m_mandelbrot->getYMax()),
+                                     formatDouble(m_mandelbrot->getYMax()),
                                      false, true);
 
   m_dataFields.txtMagLevel = dynamic_cast<wxStaticText*>(ctrlMagLevel.widget);
@@ -255,12 +262,12 @@ static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
 }
 
 void MainWindow::onRender() {
-  std::string magLevel = std::to_string(m_mandelbrot->computeMagnification());
+  auto magLevel = formatDouble(m_mandelbrot->computeMagnification());
   m_dataFields.txtMagLevel->SetLabel(magLevel);
-  m_dataFields.txtXMin->SetLabel(std::to_string(m_mandelbrot->getXMin()));
-  m_dataFields.txtXMax->SetLabel(std::to_string(m_mandelbrot->getXMax()));
-  m_dataFields.txtYMin->SetLabel(std::to_string(m_mandelbrot->getYMin()));
-  m_dataFields.txtYMax->SetLabel(std::to_string(m_mandelbrot->getYMax()));
+  m_dataFields.txtXMin->SetLabel(formatDouble(m_mandelbrot->getXMin()));
+  m_dataFields.txtXMax->SetLabel(formatDouble(m_mandelbrot->getXMax()));
+  m_dataFields.txtYMin->SetLabel(formatDouble(m_mandelbrot->getYMin()));
+  m_dataFields.txtYMax->SetLabel(formatDouble(m_mandelbrot->getYMax()));
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
