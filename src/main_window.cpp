@@ -10,18 +10,25 @@ struct WidgetAndHBox {
 };
 
 static WidgetAndHBox constructTextField(wxWindow* parent, const wxString& label,
-                                        bool multiline = false) {
+                                        const wxString& content = "",
+                                        bool multiline = false,
+                                        bool readonly = false) {
 
   WidgetAndHBox ctrl;
-  ctrl.widget = new wxTextCtrl(parent, wxID_ANY, "",
-                               wxDefaultPosition, wxDefaultSize,
-                               multiline ? wxTE_MULTILINE : 0L);
+  if (readonly) {
+    ctrl.widget = new wxStaticText(parent, wxID_ANY, content);
+  }
+  else {
+    ctrl.widget = new wxTextCtrl(parent, wxID_ANY, content,
+                                wxDefaultPosition, wxDefaultSize,
+                                multiline ? wxTE_MULTILINE : 0L);
+  }
 
   ctrl.hbox = new wxBoxSizer(wxHORIZONTAL);
 
   if (label.length() > 0) {
-    auto lblLabel = new wxStaticText(parent, wxID_ANY, label);
-    ctrl.hbox->Add(lblLabel, 0, wxRIGHT, 8);
+    auto txtLabel = new wxStaticText(parent, wxID_ANY, label);
+    ctrl.hbox->Add(txtLabel, 0, wxRIGHT, 8);
   }
 
   ctrl.hbox->Add(ctrl.widget, 1);
@@ -63,13 +70,14 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
 void MainWindow::constructLeftPanel() {
   int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
-  m_canvas = new Canvas(m_splitter, args, *m_mandelbrot);
+  m_canvas = new Canvas(m_splitter, args, *m_mandelbrot,
+                        [this]() { onRender(); });
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
 }
 
-wxStaticBox* MainWindow::constructFlyThroughPanel() {
-  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
+wxStaticBox* MainWindow::constructFlyThroughPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
                              wxGetTranslation("Fly-Through Mode"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
@@ -78,29 +86,30 @@ wxStaticBox* MainWindow::constructFlyThroughPanel() {
   auto strFlyThrough = "With the left panel in focus, press the Z key to toggle"
                        " Fly-Through mode.";
 
-  auto ctrlFlyThrough = constructTextField(box, "", true);
+  auto ctrlFlyThrough = constructTextField(box, "",
+                                           wxGetTranslation(strFlyThrough),
+                                           true);
   auto txtFlyThrough = dynamic_cast<wxTextCtrl*>(ctrlFlyThrough.widget);
   txtFlyThrough->SetEditable(false);
-  txtFlyThrough->SetValue(wxGetTranslation(strFlyThrough));
 
   vbox->Add(ctrlFlyThrough.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   return box;
 }
 
-wxStaticBox* MainWindow::constructColourSchemePanel() {
-  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
+wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
                              wxGetTranslation("Colour Scheme"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
 
-  auto lblShaderCodePre = new wxStaticText(box, wxID_ANY,
+  auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
     "vec3 getColour(int i) {");
-  auto ctrlShaderCode = constructTextField(box, "  ", true);
+  auto ctrlShaderCode = constructTextField(box, "  ", "", true);
   m_txtComputeColourImpl = dynamic_cast<wxTextCtrl*>(ctrlShaderCode.widget);
-  auto lblShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
-  auto ctrlCompileStatus = constructTextField(box, "", true);
+  auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+  auto ctrlCompileStatus = constructTextField(box, "", "", true);
   m_txtComputeColourImplCompileStatus =
     dynamic_cast<wxTextCtrl*>(ctrlCompileStatus.widget);
   m_txtComputeColourImplCompileStatus->SetEditable(false);
@@ -108,25 +117,25 @@ wxStaticBox* MainWindow::constructColourSchemePanel() {
   auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
   btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyColourSchemeClick, this);
 
-  vbox->Add(lblShaderCodePre);
+  vbox->Add(txtShaderCodePre);
   vbox->Add(ctrlShaderCode.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  vbox->Add(lblShaderCodePost);
+  vbox->Add(txtShaderCodePost);
   vbox->Add(ctrlCompileStatus.hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   return box;
 }
 
-wxStaticBox* MainWindow::constructParamsPanel() {
-  auto box = new wxStaticBox(m_rightPanel, wxID_ANY,
-                             wxGetTranslation("Render Params"));
+wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Configurable Options"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
 
-  auto ctrlMaxIterations = constructTextField(box, "Max iterations");
+  auto strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
+  auto ctrlMaxIterations = constructTextField(box, "Max iterations", strMaxI);
   m_txtMaxIterations = dynamic_cast<wxTextCtrl*>(ctrlMaxIterations.widget);
-  m_txtMaxIterations->AppendText(std::to_string(DEFAULT_MAX_ITERATIONS));
 
   auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
   btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
@@ -137,24 +146,86 @@ wxStaticBox* MainWindow::constructParamsPanel() {
   return box;
 }
 
+wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Data"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  box->SetSizer(vbox);
+
+  double magnification = m_mandelbrot->computeMagnification();
+
+  auto ctrlMagLevel = constructTextField(box, "Magnification",
+                                        std::to_string(magnification) + "X",
+                                        false, true);
+
+  auto ctrlXMin = constructTextField(box, "x-min",
+                                     std::to_string(m_mandelbrot->getXMin()),
+                                     false, true);
+
+  auto ctrlXMax = constructTextField(box, "x-max",
+                                     std::to_string(m_mandelbrot->getXMax()),
+                                     false, true);
+
+  auto ctrlYMin = constructTextField(box, "y-min",
+                                     std::to_string(m_mandelbrot->getYMin()),
+                                     false, true);
+
+  auto ctrlYMax = constructTextField(box, "y-max",
+                                     std::to_string(m_mandelbrot->getYMax()),
+                                     false, true);
+
+  m_dataFields.txtMagLevel = dynamic_cast<wxStaticText*>(ctrlMagLevel.widget);
+  m_dataFields.txtXMin = dynamic_cast<wxStaticText*>(ctrlXMin.widget);
+  m_dataFields.txtXMax = dynamic_cast<wxStaticText*>(ctrlXMax.widget);
+  m_dataFields.txtYMin = dynamic_cast<wxStaticText*>(ctrlYMin.widget);
+  m_dataFields.txtYMax = dynamic_cast<wxStaticText*>(ctrlYMax.widget);
+
+  vbox->Add(ctrlMagLevel.hbox, 0, wxEXPAND | wxRIGHT, 10);
+  vbox->Add(ctrlXMin.hbox, 0, wxEXPAND | wxRIGHT, 10);
+  vbox->Add(ctrlXMax.hbox, 0, wxEXPAND | wxRIGHT, 10);
+  vbox->Add(ctrlYMin.hbox, 0, wxEXPAND | wxRIGHT, 10);
+  vbox->Add(ctrlYMax.hbox, 0, wxEXPAND | wxRIGHT, 10);
+
+  return box;
+}
+
+void MainWindow::constructInfoPage() {
+  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
+  m_rightPanel->AddPage(page, wxGetTranslation("Info"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  vbox->Add(constructFlyThroughPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(constructInfoPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
+  page->SetSizer(vbox);
+}
+
+void MainWindow::constructParamsPage() {
+  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
+  m_rightPanel->AddPage(page, wxGetTranslation("Parameters"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  vbox->Add(constructParamsPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
+  page->SetSizer(vbox);
+}
+
+void MainWindow::constructColourSchemePage() {
+  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
+  m_rightPanel->AddPage(page, wxGetTranslation("Colours"));
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  vbox->Add(constructColourSchemePanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
+  page->SetSizer(vbox);
+}
+
 void MainWindow::constructRightPanel() {
-  m_rightPanel = new wxPanel(m_splitter, wxID_ANY);
-
-  auto grid = new wxGridBagSizer(6, 6);
-  m_rightPanel->SetSizer(grid);
-
-  auto flyThroughPanel = constructFlyThroughPanel();
-  auto colourSchemePanel = constructColourSchemePanel();
-  auto paramsPanel = constructParamsPanel();
-
-  grid->Add(flyThroughPanel, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
-  grid->Add(colourSchemePanel, wxGBPosition(1, 0), wxGBSpan(1, 2), wxEXPAND);
-  grid->Add(paramsPanel, wxGBPosition(2, 0), wxGBSpan(1, 2), wxEXPAND);
-
-  grid->AddGrowableCol(1, 1);
-  grid->AddGrowableRow(0, 1);
-  grid->AddGrowableRow(1, 1);
-  grid->AddGrowableRow(2, 1);
+  m_rightPanel = new wxNotebook(m_splitter, wxID_ANY);
+  constructInfoPage();
+  constructParamsPage();
+  constructColourSchemePage();
 }
 
 void MainWindow::constructMenu() {
@@ -181,6 +252,15 @@ static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
   }
 
   return true;
+}
+
+void MainWindow::onRender() {
+  std::string magLevel = std::to_string(m_mandelbrot->computeMagnification());
+  m_dataFields.txtMagLevel->SetLabel(magLevel);
+  m_dataFields.txtXMin->SetLabel(std::to_string(m_mandelbrot->getXMin()));
+  m_dataFields.txtXMax->SetLabel(std::to_string(m_mandelbrot->getXMax()));
+  m_dataFields.txtYMin->SetLabel(std::to_string(m_mandelbrot->getYMin()));
+  m_dataFields.txtYMax->SetLabel(std::to_string(m_mandelbrot->getYMax()));
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent& e) {

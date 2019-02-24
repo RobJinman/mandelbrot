@@ -16,10 +16,12 @@ wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_TIMER(wxID_ANY, Canvas::onTick)
 wxEND_EVENT_TABLE()
 
-Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot)
+Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
+               std::function<void()> onRender)
   : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition,
                wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),
-    m_mandelbrot(mandelbrot) {
+    m_mandelbrot(mandelbrot),
+    m_onRender(onRender) {
 
   wxGLContextAttrs attrs;
   attrs.MajorVersion(3).MinorVersion(3).ForwardCompatible();
@@ -167,4 +169,6 @@ void Canvas::render(wxDC& dc) {
 
   glFlush();
   SwapBuffers();
+
+  m_onRender();
 }

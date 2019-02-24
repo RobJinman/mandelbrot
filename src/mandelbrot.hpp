@@ -17,6 +17,14 @@ public:
   void setMaxIterations(int maxI);
   void setColourScheme(const std::string& computeColourImpl);
 
+  double getXMin() const;
+  double getXMax() const;
+  double getYMin() const;
+  double getYMax() const;
+  int getMaxIterations() const;
+
+  double computeMagnification() const;
+
 private:
   void loadShaders(const std::string& fragShaderPath,
                    const std::string& vertShaderPath,

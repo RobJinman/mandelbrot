@@ -20,14 +20,19 @@ static const std::map<string, string> PRESETS = {
 
 static const string COMPUTE_COLOUR_IMPL_SEARCH_STRING = "COMPUTE_COLOUR_IMPL";
 
+static const double INITIAL_XMIN = -2.5;
+static const double INITIAL_XMAX = 1.5;
+static const double INITIAL_YMIN = -2.0;
+static const double INITIAL_YMAX = 2.0;
+
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
   m_H = H;
   m_maxIterations = DEFAULT_MAX_ITERATIONS;
-  m_xmin = -2.5;
-  m_xmax = 1.5;
-  m_ymin = -2.0;
-  m_ymax = 2.0;
+  m_xmin = INITIAL_XMIN;
+  m_xmax = INITIAL_XMAX;
+  m_ymin = INITIAL_YMIN;
+  m_ymax = INITIAL_YMAX;
 }
 
 void Mandelbrot::resize(int w, int h) {
@@ -217,4 +222,28 @@ void Mandelbrot::draw() {
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDisableVertexAttribArray(0);
+}
+
+double Mandelbrot::computeMagnification() const {
+  return pow((INITIAL_YMAX - INITIAL_YMIN) / (m_ymax - m_ymin), 2.0);
+}
+
+double Mandelbrot::getXMin() const {
+  return m_xmin;
+}
+
+double Mandelbrot::getXMax() const {
+  return m_xmax;
+}
+
+double Mandelbrot::getYMin() const {
+  return m_ymin;
+}
+
+double Mandelbrot::getYMax() const {
+  return m_ymax;
+}
+
+int Mandelbrot::getMaxIterations() const {
+  return m_maxIterations;
 }

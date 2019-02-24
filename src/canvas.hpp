@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <chrono>
 #include <wx/wx.h>
@@ -9,7 +10,8 @@ class Mandelbrot;
 
 class Canvas : public wxGLCanvas {
 public:
-  Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot);
+  Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
+         std::function<void()> onRender);
 
 private:
   void initGl();
@@ -29,6 +31,7 @@ private:
 
   bool m_initialised = false;
   wxTimer* m_timer;
+  std::function<void()> m_onRender;
   Mandelbrot& m_mandelbrot;
   std::unique_ptr<wxGLContext> m_context;
   long long m_frame = 0;
