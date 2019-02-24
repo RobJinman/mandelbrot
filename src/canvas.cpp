@@ -16,7 +16,7 @@ wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_TIMER(wxID_ANY, Canvas::onTick)
 wxEND_EVENT_TABLE()
 
-Canvas::Canvas(wxFrame* parent, const int* args, Mandelbrot& mandelbrot)
+Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot)
   : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition,
                wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),
     m_mandelbrot(mandelbrot) {

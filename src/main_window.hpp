@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <wx/wx.h>
+#include <wx/splitter.h>
 #include "canvas.hpp"
 #include "mandelbrot.hpp"
 
@@ -11,15 +12,20 @@ public:
 
 private:
   void constructMenu();
-  void constructGlCanvas();
+  void constructLeftPanel();
+  void constructRightPanel();
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
+  void onBtnApplyClick(wxCommandEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
-  wxBoxSizer* m_hbox;
+  wxSplitterWindow* m_splitter;
+  wxBoxSizer* m_vbox;
+  wxPanel* m_rightPanel;
   Canvas* m_canvas;
+  wxTextCtrl* m_txtMaxIterations;
 
   wxDECLARE_EVENT_TABLE();
 };

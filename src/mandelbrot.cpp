@@ -11,7 +11,7 @@ using std::vector;
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
   m_H = H;
-  m_maxIterations = 250;
+  m_maxIterations = DEFAULT_MAX_ITERATIONS;
   m_xmin = -2.5;
   m_xmax = 1.5;
   m_ymin = -2.0;
@@ -130,6 +130,11 @@ void Mandelbrot::updateUniforms() {
   glUniform1f(m_uniforms.uXmax, m_xmax);
   glUniform1f(m_uniforms.uYmin, m_ymin);
   glUniform1f(m_uniforms.uYmax, m_ymax);
+}
+
+void Mandelbrot::setMaxIterations(int maxI) {
+  m_maxIterations = maxI;
+  updateUniforms();
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {

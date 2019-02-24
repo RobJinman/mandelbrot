@@ -3,6 +3,8 @@
 #include <string>
 #include "gl.hpp"
 
+const int DEFAULT_MAX_ITERATIONS = 100;
+
 class Mandelbrot {
 public:
   Mandelbrot(int W, int H);
@@ -11,6 +13,8 @@ public:
   void resize(int w, int y);
   void draw();
   void zoom(double x, double y, double mag);
+
+  void setMaxIterations(int maxI);
 
 private:
   void loadShaders(const std::string& fragShaderPath,

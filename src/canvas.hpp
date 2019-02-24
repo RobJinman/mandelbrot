@@ -9,7 +9,7 @@ class Mandelbrot;
 
 class Canvas : public wxGLCanvas {
 public:
-  Canvas(wxFrame* parent, const int* args, Mandelbrot& mandelbrot);
+  Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot);
 
 private:
   void initGl();

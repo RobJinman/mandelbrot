@@ -1,4 +1,5 @@
 #include <sstream>
+#include <wx/gbsizer.h>
 #include "main_window.hpp"
 #include "config.hpp"
 
@@ -10,26 +11,83 @@ wxEND_EVENT_TABLE()
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
   : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size) {
 
-  m_mandelbrot.reset(new Mandelbrot(400, 400));
+  m_vbox = new wxBoxSizer(wxVERTICAL);
+  SetSizer(m_vbox);
 
-  m_hbox = new wxBoxSizer(wxHORIZONTAL);
-  SetSizer(m_hbox);
   SetAutoLayout(true);
 
+  m_mandelbrot.reset(new Mandelbrot(400, 400));
+  m_splitter = new wxSplitterWindow(this);
+
+  m_vbox->Add(m_splitter, 1, wxEXPAND, 0);
+
   constructMenu();
-  constructGlCanvas();
+  constructLeftPanel();
+  constructRightPanel();
+
+  m_splitter->SplitVertically(m_canvas, m_rightPanel);
+
+  auto sz = GetSize();
+  float aspect = static_cast<float>(sz.y) / static_cast<float>(sz.x);
+  m_splitter->SetSashGravity(aspect);
 
   CreateStatusBar();
   SetStatusText("");
 }
 
-void MainWindow::constructGlCanvas() {
+void MainWindow::constructLeftPanel() {
   int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
-  m_canvas = new Canvas(this, args, *m_mandelbrot);
+  m_canvas = new Canvas(m_splitter, args, *m_mandelbrot);
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
+}
 
-  m_hbox->Add(m_canvas, 1, wxEXPAND);
+static wxStaticBox* constructFlyThroughPanel(wxWindow* parent) {
+  auto boxFlyThrough = new wxStaticBox(parent, wxID_ANY,
+                                       wxGetTranslation("Fly-Through Mode"));
+
+  auto grid = new wxGridBagSizer(6, 6);
+  boxFlyThrough->SetSizer(grid);
+
+  auto strFlyThrough = "With the left panel in focus, press the Z key to toggle"
+                       " Fly-Through mode.";
+  auto txtFlyThrough = new wxTextCtrl(boxFlyThrough, wxID_ANY,
+                                      wxGetTranslation(strFlyThrough),
+                                      wxDefaultPosition, wxDefaultSize,
+                                      wxTE_MULTILINE);
+  txtFlyThrough->SetEditable(false);
+
+  grid->Add(txtFlyThrough, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
+
+  grid->AddGrowableCol(1, 1);
+
+  return boxFlyThrough;
+}
+
+void MainWindow::constructRightPanel() {
+  m_rightPanel = new wxPanel(m_splitter, wxID_ANY);
+
+  auto grid = new wxGridBagSizer(6, 6);
+  m_rightPanel->SetSizer(grid);
+
+  auto flyThroughPanel = constructFlyThroughPanel(m_rightPanel);
+
+  auto lblMaxIterations = new wxStaticText(m_rightPanel, wxID_ANY,
+                                           wxGetTranslation("Max iterations"));
+
+  m_txtMaxIterations = new wxTextCtrl(m_rightPanel, wxID_ANY);
+  m_txtMaxIterations->AppendText(std::to_string(DEFAULT_MAX_ITERATIONS));
+
+  auto btnApply = new wxButton(m_rightPanel, wxID_ANY, "Apply");
+  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onBtnApplyClick, this);
+
+  grid->Add(flyThroughPanel, wxGBPosition(0, 0), wxGBSpan(1, 2), wxEXPAND);
+  grid->Add(lblMaxIterations, wxGBPosition(1, 0), wxGBSpan(1, 1), wxEXPAND);
+  grid->Add(m_txtMaxIterations, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND);
+  grid->Add(btnApply, wxGBPosition(3, 1));
+
+  grid->AddGrowableRow(0, 1);
+  grid->AddGrowableCol(1, 1);
 }
 
 void MainWindow::constructMenu() {
@@ -40,18 +98,38 @@ void MainWindow::constructMenu() {
   mnuHelp->Append(wxID_ABOUT);
 
   wxMenuBar* menuBar = new wxMenuBar;
-  menuBar->Append(mnuFile, "&File");
-  menuBar->Append(mnuHelp, "&Help");
+  menuBar->Append(mnuFile, wxGetTranslation("&File"));
+  menuBar->Append(mnuHelp, wxGetTranslation("&Help"));
 
   SetMenuBar(menuBar);
 }
 
+static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
+  try {
+    value = std::stoi(txt.GetValue().ToStdString());
+  }
+  catch (...) {
+    txt.SetValue(wxGetTranslation("error"));
+    return false;
+  }
+
+  return true;
+}
+
+void MainWindow::onBtnApplyClick(wxCommandEvent& e) {
+  int maxI = 0;
+  if (tryGetIntFromTextCtrl(*m_txtMaxIterations, maxI)) {
+    m_mandelbrot->setMaxIterations(maxI);
+    m_canvas->Refresh();
+  }
+}
+
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
   if (e.GetInt() == TOGGLED_ON) {
-    SetStatusText("Fly through mode activated");
+    SetStatusText(wxGetTranslation("Fly through mode activated"));
   }
   else if (e.GetInt() == TOGGLED_OFF) {
-    SetStatusText("Fly through mode deactivated");
+    SetStatusText(wxGetTranslation("Fly through mode deactivated"));
   }
 }
 
@@ -68,18 +146,19 @@ static std::string versionString() {
 
 void MainWindow::onAbout(wxCommandEvent&) {
   std::stringstream ss;
-  ss << "The Mandelbrot fractal rendered on the GPU inside a fragment shader"
-     << std::endl << std::endl;
+  ss << "The Mandelbrot fractal rendered on the GPU inside a fragment "
+        "shader." << std::endl << std::endl;
   ss << "Author: Rob Jinman <jinmanr@gmail.com>" << std::endl << std::endl;
   ss << "Copyright Rob Jinman 2019. All rights reserved.";
 
-  wxMessageBox(ss.str(), versionString(), wxOK | wxICON_INFORMATION);
+  wxMessageBox(wxGetTranslation(ss.str()), versionString(),
+               wxOK | wxICON_INFORMATION);
 }
 
 class Application : public wxApp {
 public:
   virtual bool OnInit() override {
-    MainWindow* frame = new MainWindow(versionString(), wxSize(400, 400));
+    MainWindow* frame = new MainWindow(versionString(), wxSize(800, 500));
     frame->Show();
     return true;
   }
