@@ -223,7 +223,7 @@ void Mandelbrot::zoom(double x, double y, double mag) {
   double centreX = m_xmin + xRange * x / m_W;
   double centreY = m_ymin + yRange * y / m_H;
 
-  double sf = sqrt(mag);
+  double sf = mag;
 
   double xRangeNew = xRange / sf;
   double yRangeNew = yRange / sf;
@@ -254,7 +254,7 @@ void Mandelbrot::draw() {
 }
 
 double Mandelbrot::computeMagnification() const {
-  return pow((INITIAL_YMAX - INITIAL_YMIN) / (m_ymax - m_ymin), 2.0);
+  return (INITIAL_YMAX - INITIAL_YMIN) / (m_ymax - m_ymin);
 }
 
 double Mandelbrot::getXMin() const {
