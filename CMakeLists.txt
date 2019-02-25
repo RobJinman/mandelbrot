@@ -34,6 +34,7 @@ include_directories(
   "${VENDOR_DIR}/include"
   "${VENDOR_DIR}/include/wx-3.1"
   "${VENDOR_DIR}/lib/wx/include/gtk2-unicode-static-3.1"
+  "${VENDOR_DIR}/lib/vc_x64_lib/mswu"
 )
 
 link_directories("${VENDOR_DIR}/lib")
@@ -46,6 +47,7 @@ function(find_vendor_libs RESULT LIB_NAMES)
       ${LIB_VAR}
       NAMES "${LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
       PATHS "${VENDOR_DIR}/lib"
+      PATH_SUFFIXES "vc_x64_lib"
       NO_DEFAULT_PATH
     )
     list(APPEND LIB_PATHS "${${LIB_VAR}}")
@@ -53,10 +55,23 @@ function(find_vendor_libs RESULT LIB_NAMES)
   set(${RESULT} "${LIB_PATHS}" PARENT_SCOPE)
 endfunction()
 
-set(VENDOR_LIB_NAMES libGLEW
-                     libwx_gtk2u_gl-3.1
-                     libwx_gtk2u_core-3.1
-                     libwx_baseu-3.1)
+if (PLATFORM_LINUX)
+  set(VENDOR_LIB_NAMES libGLEW
+                       libwx_gtk2u_gl-3.1
+                       libwx_gtk2u_core-3.1
+                       libwx_baseu-3.1)
+elseif (PLATFORM_WINDOWS)
+  set(VENDOR_LIB_NAMES libGLEW32
+                       wxmsw31u_gl
+                       wxmsw31u_core
+                       wxpng
+                       wxtiff
+                       wxscintilla
+                       wxzlib
+                       wxregexu
+                       wxexpat
+                       wxbase31u)
+endif()
 
 find_vendor_libs(VENDOR_STATIC_LIBS "${VENDOR_LIB_NAMES}")
 
@@ -65,6 +80,8 @@ if (PLATFORM_LINUX)
     PLATFORM_LIBS
     -lXrandr -lXext -lX11 -lXinerama -lXcursor -lrt -ldl -lXxf86vm -pthread
   )
+  set(PLATFORM_COMPILE_FLAGS)
+  set(PLATFORM_LINK_FLAGS)
   set(WX_OPTIONS -DWXUSINGDLL -D__WXGTK2__ -D__WXGTK__)
   set(WX_DEPS -lSM -lICE -lX11 -lXext -lglib-2.0
       -lgobject-2.0 -latk-1.0 -lgio-2.0 -lgthread-2.0
@@ -72,11 +89,15 @@ if (PLATFORM_LINUX)
       -lpangocairo-1.0 -lpangoft2-1.0 -lpangoxft-1.0
       -lpng -lgdk-x11-2.0 -lgtk-x11-2.0 -lz)
 elseif (PLATFORM_WINDOWS)
-  # TODO
-  set(PLATFORM_LIBS)
+  set(GLEW_OPTIONS -DGLEW_STATIC)
+  set(PLATFORM_LIBS -defaultlib:comctl32.lib -defaultlib:rpcrt4.lib)
+  set(PLATFORM_COMPILE_FLAGS)
+  set(PLATFORM_LINK_FLAGS /SUBSYSTEM:WINDOWS /ENTRY:WinMainCRTStartup)
 elseif (PLATFORM_OSX)
   # TODO
   set(PLATFORM_LIBS)
+  set(PLATFORM_COMPILE_FLAGS)
+  set(PLATFORM_LINK_FLAGS)
 endif()
 
 set(
@@ -90,7 +111,11 @@ set(
 file(GLOB CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_executable(mandelbrot ${CPP_SOURCES})
 
-target_compile_options(mandelbrot PRIVATE ${WX_OPTIONS})
+target_compile_options(
+  mandelbrot
+  PRIVATE ${WX_OPTIONS} ${GLEW_OPTIONS} ${PLATFORM_COMPILE_FLAGS}
+)
 target_link_libraries(mandelbrot ${ALL_LIBS})
+target_link_options(mandelbrot PRIVATE ${PLATFORM_LINK_FLAGS})
 
 file(COPY "${DATA_DIR}" DESTINATION "${PROJECT_BINARY_DIR}")
