@@ -6,12 +6,18 @@
 #include <wx/wx.h>
 #include "gl.hpp"
 
+const double DEFAULT_TARGET_FPS = 10.0;
+const double DEFAULT_ZOOM_PER_FRAME = 1.025;
+
 class Mandelbrot;
 
 class Canvas : public wxGLCanvas {
 public:
   Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
          std::function<void()> onRender);
+
+  void setTargetFps(double fps);
+  void setZoomPerFrame(double zoom);
 
 private:
   void initGl();
@@ -39,6 +45,8 @@ private:
   std::chrono::high_resolution_clock::time_point m_t =
     std::chrono::high_resolution_clock::now();
   bool m_flyThroughMode = false;
+  double m_targetFps;
+  double m_zoomPerFrame;
 
   wxDECLARE_EVENT_TABLE();
 };

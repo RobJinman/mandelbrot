@@ -49,6 +49,9 @@ endfunction()
 
 if (PLATFORM_LINUX)
   set(VENDOR_LIB_NAMES libGLEW
+                       libwx_gtk2u_richtext-3.1
+                       libwx_gtk2u_html-3.1
+                       libwx_baseu_xml-3.1
                        libwx_gtk2u_gl-3.1
                        libwx_gtk2u_core-3.1
                        libwx_baseu-3.1)
@@ -76,7 +79,7 @@ if (PLATFORM_LINUX)
     -lgobject-2.0 -latk-1.0 -lgio-2.0 -lgthread-2.0
     -lgmodule-2.0 -lgdk_pixbuf-2.0 -lcairo -lpango-1.0
     -lpangocairo-1.0 -lpangoft2-1.0 -lpangoxft-1.0
-    -lpng -lgdk-x11-2.0 -lgtk-x11-2.0 -lz
+    -lpng -lgdk-x11-2.0 -lgtk-x11-2.0 -lexpat -lz
   )
   set(PLATFORM_COMPILE_FLAGS -DWXUSINGDLL -D__WXGTK2__ -D__WXGTK__)
   set(PLATFORM_LINK_FLAGS)

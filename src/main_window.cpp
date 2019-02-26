@@ -1,6 +1,7 @@
 #include <sstream>
 #include <iomanip>
 #include <wx/gbsizer.h>
+#include <wx/richtext/richtextctrl.h>
 #include "main_window.hpp"
 #include "config.hpp"
 #include "exception.hpp"
@@ -30,6 +31,7 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   m_mandelbrot.reset(new Mandelbrot(400, 400));
   m_splitter = new wxSplitterWindow(this);
+  m_splitter->SetMinimumPaneSize(300);
 
   m_vbox->Add(m_splitter, 1, wxEXPAND, 0);
 
@@ -39,12 +41,8 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   m_splitter->SplitVertically(m_canvas, m_rightPanel);
 
-  auto sz = GetSize();
-  float aspect = static_cast<float>(sz.y) / static_cast<float>(sz.x);
-  m_splitter->SetSashGravity(aspect);
-
   CreateStatusBar();
-  SetStatusText("");
+  SetStatusText(wxEmptyString);
 }
 
 void MainWindow::constructLeftPanel() {
@@ -55,31 +53,38 @@ void MainWindow::constructLeftPanel() {
                  this);
 }
 
-wxStaticBox* MainWindow::constructFlyThroughPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Fly-Through Mode"));
+wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
 
-  auto strFlyThrough = "With the left panel in focus, press the Z key to toggle"
-                       " Fly-Through mode.";
+  auto txtInfo = new wxRichTextCtrl(box, wxID_ANY, wxEmptyString,
+                                    wxDefaultPosition, wxDefaultSize,
+                                    wxVSCROLL | wxBORDER_NONE | wxWANTS_CHARS);
+  txtInfo->SetEditable(false);
+  txtInfo->SetMinSize(wxSize(0, 80));
 
-  auto txtFlyThrough = new wxTextCtrl(box, wxID_ANY,
-                                      wxGetTranslation(strFlyThrough),
-                                      wxDefaultPosition, wxDefaultSize,
-                                      wxTE_MULTILINE);
-  txtFlyThrough->SetEditable(false);
-  txtFlyThrough->SetMinSize(wxSize(0, 80));
+  wxString s = "Fly-Through Mode";
+  txtInfo->BeginBold();
+  txtInfo->BeginUnderline();
+  txtInfo->WriteText(wxGetTranslation(s));
+  txtInfo->EndUnderline();
+  txtInfo->EndBold();
+  txtInfo->Newline();
+
+  s = "With the left panel in focus, press the Z key to toggle Fly-Through "
+      "mode.";
+  txtInfo->WriteText(wxGetTranslation(s));
 
   vbox->AddSpacer(10);
-  vbox->Add(txtFlyThrough, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(txtInfo, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   return box;
 }
 
 wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, "");
+  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
@@ -99,7 +104,7 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
                                             true);
   auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
-  m_txtCompileStatus = new wxTextCtrl(box, wxID_ANY, "",
+  m_txtCompileStatus = new wxTextCtrl(box, wxID_ANY, wxEmptyString,
                                       wxDefaultPosition,
                                       wxDefaultSize,
                                       wxTE_MULTILINE);
@@ -120,8 +125,9 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   return box;
 }
 
-wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, "");
+wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Render Parameters"));
 
   auto grid = new wxFlexGridSizer(2);
   box->SetSizer(grid);
@@ -130,20 +136,44 @@ wxStaticBox* MainWindow::constructParamsPanel(wxWindow* parent) {
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
   m_txtMaxIterations = constructTextBox(box, strMaxI);
 
-  auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
-  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
-
-  grid->Add(lblMaxI, 0, wxEXPAND | wxRIGHT, 10);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
+  grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
-  grid->AddSpacer(1);
-  grid->Add(btnApply, 0, wxEXPAND | wxRIGHT, 10);
 
-  grid->AddGrowableCol(1);
+  grid->AddGrowableCol(0);
 
   return box;
 }
 
-wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
+wxStaticBox* MainWindow::constructFlyThroughParamsPanel(wxWindow* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY,
+                             wxGetTranslation("Fly-Through Mode"));
+
+  auto grid = new wxFlexGridSizer(2);
+  box->SetSizer(grid);
+
+  auto strFps = std::to_string(DEFAULT_TARGET_FPS);
+  auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
+  m_txtTargetFps = constructTextBox(box, strFps);
+
+  auto strZoom = std::to_string(DEFAULT_ZOOM_PER_FRAME);
+  auto lblZoom = constructLabel(box, wxGetTranslation("Zoom per frame"));
+  m_txtZoomPerFrame = constructTextBox(box, strZoom);
+
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
+  grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtTargetFps, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtZoomPerFrame, 0, wxEXPAND | wxRIGHT, 10);
+
+  grid->AddGrowableCol(0);
+
+  return box;
+}
+
+wxStaticBox* MainWindow::constructDataPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY,
                              wxGetTranslation("Data"));
 
@@ -173,15 +203,15 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
-  grid->Add(lblMagLevel, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblMagLevel, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   grid->Add(m_dataFields.txtMagLevel, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblXMin, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblXMin, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
   grid->Add(m_dataFields.txtXMin, 1, wxEXPAND, 10);
-  grid->Add(lblXMax, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblXMax, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
   grid->Add(m_dataFields.txtXMax, 1, wxEXPAND, 10);
-  grid->Add(lblYMin, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblYMin, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
   grid->Add(m_dataFields.txtYMin, 1, wxEXPAND, 10);
-  grid->Add(lblYMax, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblYMax, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
   grid->Add(m_dataFields.txtYMax, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(1);
@@ -190,30 +220,28 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
 }
 
 wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, "");
+  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
   auto grid = new wxFlexGridSizer(2);
   box->SetSizer(grid);
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
-  m_txtExportWidth = constructTextBox(box, "");
+  m_txtExportWidth = constructTextBox(box, wxEmptyString);
 
   auto lblHeight = constructLabel(box, wxGetTranslation("Height"));
-  m_txtExportHeight = constructTextBox(box, "");
+  m_txtExportHeight = constructTextBox(box, wxEmptyString);
 
   auto btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
   btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
 
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblWidth, 0, wxRIGHT, 10);
+  grid->Add(lblWidth, 0, wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtExportWidth, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblHeight, 0, wxRIGHT, 10);
+  grid->Add(lblHeight, 0, wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtExportHeight, 0, wxEXPAND | wxRIGHT, 10);
   grid->AddSpacer(1);
   grid->Add(btnExport, 0, wxEXPAND | wxRIGHT, 10);
 
-  grid->AddGrowableCol(1);
+  grid->AddGrowableCol(0);
 
   return box;
 }
@@ -223,8 +251,8 @@ void MainWindow::constructInfoPage() {
   m_rightPanel->AddPage(page, wxGetTranslation("Info"));
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructFlyThroughPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(constructInfoPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(constructDataPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   page->SetSizer(vbox);
 }
@@ -233,8 +261,15 @@ void MainWindow::constructParamsPage() {
   auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
   m_rightPanel->AddPage(page, wxGetTranslation("Parameters"));
 
+  auto btnApply = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
+  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
+
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructParamsPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(constructRenderParamsPanel(page), 1,
+            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+  vbox->Add(constructFlyThroughParamsPanel(page), 1,
+            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+  vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   page->SetSizer(vbox);
 }
@@ -294,6 +329,18 @@ static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
   return true;
 }
 
+static bool tryGetDoubleFromTextCtrl(wxTextCtrl& txt, double& value) {
+  try {
+    value = std::stod(txt.GetValue().ToStdString());
+  }
+  catch (...) {
+    txt.SetValue(wxGetTranslation("error"));
+    return false;
+  }
+
+  return true;
+}
+
 void MainWindow::onRender() {
   auto magLevel = formatDouble(m_mandelbrot->computeMagnification());
   m_dataFields.txtMagLevel->SetLabel(magLevel);
@@ -314,9 +361,24 @@ void MainWindow::onExportClick(wxCommandEvent& e) {
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
+  bool needRefresh = false;
+
   int maxI = 0;
   if (tryGetIntFromTextCtrl(*m_txtMaxIterations, maxI)) {
     m_mandelbrot->setMaxIterations(maxI);
+  }
+
+  double targetFps = 0.0;
+  if (tryGetDoubleFromTextCtrl(*m_txtTargetFps, targetFps)) {
+    m_canvas->setTargetFps(targetFps);
+  }
+
+  double zoomPerFrame = 0.0;
+  if (tryGetDoubleFromTextCtrl(*m_txtZoomPerFrame, zoomPerFrame)) {
+    m_canvas->setZoomPerFrame(zoomPerFrame);
+  }
+
+  if (needRefresh) {
     m_canvas->Refresh();
   }
 }

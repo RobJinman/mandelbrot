@@ -15,10 +15,11 @@ private:
   void constructMenu();
   void constructLeftPanel();
   void constructRightPanel();
-  wxStaticBox* constructFlyThroughPanel(wxWindow* parent);
-  wxStaticBox* constructColourSchemePanel(wxWindow* parent);
-  wxStaticBox* constructParamsPanel(wxWindow* parent);
   wxStaticBox* constructInfoPanel(wxWindow* parent);
+  wxStaticBox* constructColourSchemePanel(wxWindow* parent);
+  wxStaticBox* constructRenderParamsPanel(wxWindow* parent);
+  wxStaticBox* constructFlyThroughParamsPanel(wxWindow* parent);
+  wxStaticBox* constructDataPanel(wxWindow* parent);
   wxStaticBox* constructExportPanel(wxWindow* parent);
   void constructInfoPage();
   void constructParamsPage();
@@ -42,6 +43,8 @@ private:
   wxNotebook* m_rightPanel;
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
+  wxTextCtrl* m_txtTargetFps;
+  wxTextCtrl* m_txtZoomPerFrame;
   wxTextCtrl* m_txtComputeColourImpl;
   wxTextCtrl* m_txtCompileStatus;
   wxTextCtrl* m_txtExportWidth;

@@ -4,9 +4,6 @@
 
 namespace chrono = std::chrono;
 
-const double TARGET_FPS = 10.0;
-const double ZOOM_PER_FRAME = 1.05;
-
 wxDEFINE_EVENT(FLY_THROUGH_MODE_TOGGLED, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
@@ -23,6 +20,9 @@ Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
     m_mandelbrot(mandelbrot),
     m_onRender(onRender) {
 
+  m_targetFps = DEFAULT_TARGET_FPS;
+  m_zoomPerFrame = DEFAULT_ZOOM_PER_FRAME;
+
   wxGLContextAttrs attrs;
   attrs.MajorVersion(3).MinorVersion(3).ForwardCompatible();
   m_context.reset(new wxGLContext(this, nullptr, &attrs));
@@ -30,6 +30,14 @@ Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
   m_timer = new wxTimer(this);
 
   SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+}
+
+void Canvas::setTargetFps(double fps) {
+  m_targetFps = fps;
+}
+
+void Canvas::setZoomPerFrame(double zoom) {
+  m_zoomPerFrame = zoom;
 }
 
 void Canvas::onTick(wxTimerEvent& e) {
@@ -60,7 +68,7 @@ wxPoint Canvas::getCursorPos() const {
 
 void Canvas::activateFlyThroughMode() {
   centreCursor();
-  m_timer->Start(1000.0 / TARGET_FPS);
+  m_timer->Start(1000.0 / m_targetFps);
   m_flyThroughMode = true;
 
   wxCommandEvent event(FLY_THROUGH_MODE_TOGGLED);
@@ -159,7 +167,7 @@ void Canvas::render(wxDC& dc) {
 
   if (m_flyThroughMode) {
     auto p = dampenCursorPos(getCursorPos());
-    m_mandelbrot.zoom(p.x, p.y, ZOOM_PER_FRAME);
+    m_mandelbrot.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
   wxGLCanvas::SetCurrent(*m_context);
