@@ -99,11 +99,48 @@ void Mandelbrot::init() {
                GL_STATIC_DRAW);
 
   loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-              PRESETS.at("monochrome"));
+              PRESETS.at(DEFAULT_COLOUR_SCHEME));
 
   initUniforms();
 
   m_initialised = true;
+}
+
+uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  GLuint frameBufferName = 0;
+  glGenFramebuffers(1, &frameBufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName);
+
+  GLuint texture = 0;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE,
+               nullptr);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+
+  GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  glDrawBuffers(1, drawBuffers);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    EXCEPTION("Error creating render target");
+  }
+
+  draw();
+
+  bytes = w * h * 3;
+  uint8_t* data = new uint8_t[bytes];
+
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  return data;
 }
 
 void Mandelbrot::initUniforms() {

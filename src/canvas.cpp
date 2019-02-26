@@ -10,6 +10,9 @@ wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_PAINT(Canvas::onPaint)
   EVT_SIZE(Canvas::onResize)
   EVT_KEY_DOWN(Canvas::onKeyPress)
+  EVT_LEFT_DOWN(Canvas::onLeftMouseBtnDown)
+  EVT_LEFT_UP(Canvas::onLeftMouseBtnUp)
+  EVT_MOTION(Canvas::onMouseMove)
   EVT_TIMER(wxID_ANY, Canvas::onTick)
 wxEND_EVENT_TABLE()
 
@@ -53,8 +56,7 @@ void Canvas::resize() {
   auto sz = GetSize();
   m_mandelbrot.resize(sz.x, sz.y);
 
-  Refresh();
-  Update();
+  refresh();
 }
 
 void Canvas::centreCursor() {
@@ -86,6 +88,28 @@ void Canvas::deactivateFlyThroughMode() {
   wxPostEvent(this, event);
 }
 
+void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
+  m_mouseDown = true;
+  m_mouseOrigin = e.GetPosition();
+}
+
+void Canvas::onLeftMouseBtnUp(wxMouseEvent& e) {
+  m_mouseDown = false;
+}
+
+void Canvas::onMouseMove(wxMouseEvent& e) {
+  if (m_mouseDown) {
+    wxPoint p = e.GetPosition();
+    wxSize sz(p.x - m_mouseOrigin.x, p.y - m_mouseOrigin.y);
+
+    wxClientDC dc(this);
+    dc.Clear();
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.SetPen(wxPen(wxColor(255, 0, 0), 2));
+    dc.DrawRectangle(m_mouseOrigin, sz);
+  }
+}
+
 void Canvas::onKeyPress(wxKeyEvent& e) {
   auto key = e.GetKeyCode();
 
@@ -102,8 +126,7 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
   }
   else if (key == 'R') {
     m_mandelbrot.reset();
-    Refresh();
-    Update();
+    refresh();
   }
 }
 
@@ -142,6 +165,11 @@ void Canvas::measureFrameRate() {
 void Canvas::onPaint(wxPaintEvent& e) {
   wxPaintDC dc(this);
   render(dc);
+}
+
+void Canvas::refresh() {
+  Refresh();
+  Update();
 }
 
 wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {

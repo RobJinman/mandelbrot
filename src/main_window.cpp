@@ -368,7 +368,11 @@ void MainWindow::onExportClick(wxCommandEvent& e) {
   if (tryGetIntFromTextCtrl(*m_txtExportWidth, w)
       && tryGetIntFromTextCtrl(*m_txtExportHeight, h)) {
 
-    // TODO
+    size_t nBytes = 0;
+    uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+
+    wxImage image(w, h, data);
+    image.SaveFile("fractal.bmp", wxBITMAP_TYPE_BMP);
   }
 }
 
@@ -378,6 +382,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
   int maxI = 0;
   if (tryGetIntFromTextCtrl(*m_txtMaxIterations, maxI)) {
     m_mandelbrot->setMaxIterations(maxI);
+    needRefresh = true;
   }
 
   double targetFps = 0.0;
@@ -391,7 +396,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
   }
 
   if (needRefresh) {
-    m_canvas->Refresh();
+    m_canvas->refresh();
   }
 }
 
@@ -399,7 +404,7 @@ void MainWindow::applyColourScheme() {
   try {
     std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
     m_mandelbrot->setColourSchemeImpl(code);
-    m_canvas->Refresh();
+    m_canvas->refresh();
     m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
   }
   catch (const ShaderException& e) {

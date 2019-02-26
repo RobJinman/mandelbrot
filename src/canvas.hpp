@@ -16,6 +16,7 @@ public:
   Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
          std::function<void()> onRender);
 
+  void refresh();
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
 
@@ -32,6 +33,9 @@ private:
 
   void onResize(wxSizeEvent& e);
   void onKeyPress(wxKeyEvent& e);
+  void onLeftMouseBtnDown(wxMouseEvent& e);
+  void onLeftMouseBtnUp(wxMouseEvent& e);
+  void onMouseMove(wxMouseEvent& e);
   void onPaint(wxPaintEvent& e);
   void onTick(wxTimerEvent& e);
 
@@ -47,6 +51,9 @@ private:
   bool m_flyThroughMode = false;
   double m_targetFps;
   double m_zoomPerFrame;
+
+  bool m_mouseDown = false;
+  wxPoint m_mouseOrigin;
 
   wxDECLARE_EVENT_TABLE();
 };

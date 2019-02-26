@@ -6,7 +6,7 @@
 
 extern const std::map<std::string, std::string> PRESETS;
 const int DEFAULT_MAX_ITERATIONS = 100;
-const std::string DEFAULT_COLOUR_SCHEME = "monochrome";
+const std::string DEFAULT_COLOUR_SCHEME = "coloured";
 
 class Mandelbrot {
 public:
@@ -29,6 +29,8 @@ public:
   int getMaxIterations() const;
 
   double computeMagnification() const;
+
+  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
 
 private:
   void loadShaders(const std::string& fragShaderPath,

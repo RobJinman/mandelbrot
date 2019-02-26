@@ -11,7 +11,7 @@ uniform float xmax;
 uniform float ymin;
 uniform float ymax;
 
-out vec3 color;
+layout(location = 0) out vec3 color;
 
 int testPoint(vec2 p) {
   float x0 = p.x;
