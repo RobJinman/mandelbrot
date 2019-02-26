@@ -53,11 +53,19 @@ static const double INITIAL_YMAX = 2.0;
 Mandelbrot::Mandelbrot(int W, int H) {
   m_W = W;
   m_H = H;
+  reset();
+}
+
+void Mandelbrot::reset() {
   m_maxIterations = DEFAULT_MAX_ITERATIONS;
   m_xmin = INITIAL_XMIN;
   m_xmax = INITIAL_XMAX;
   m_ymin = INITIAL_YMIN;
   m_ymax = INITIAL_YMAX;
+
+  if (m_initialised) {
+    updateUniforms();
+  }
 }
 
 void Mandelbrot::resize(int w, int h) {

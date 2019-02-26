@@ -16,6 +16,7 @@ public:
   void resize(int w, int y);
   void draw();
   void zoom(double x, double y, double mag);
+  void reset();
 
   void setMaxIterations(int maxI);
   void setColourScheme(const std::string& presetName);

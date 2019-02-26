@@ -54,6 +54,7 @@ void Canvas::resize() {
   m_mandelbrot.resize(sz.x, sz.y);
 
   Refresh();
+  Update();
 }
 
 void Canvas::centreCursor() {
@@ -98,6 +99,11 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
     else {
       activateFlyThroughMode();
     }
+  }
+  else if (key == 'R') {
+    m_mandelbrot.reset();
+    Refresh();
+    Update();
   }
 }
 

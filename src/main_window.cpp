@@ -62,23 +62,35 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   auto txtInfo = new wxRichTextCtrl(box, wxID_ANY, wxEmptyString,
                                     wxDefaultPosition, wxDefaultSize,
                                     wxVSCROLL | wxBORDER_NONE | wxWANTS_CHARS);
+
+  auto addHeading = [txtInfo](const wxString& text) {
+    txtInfo->BeginBold();
+    txtInfo->BeginUnderline();
+    txtInfo->WriteText(wxGetTranslation(text));
+    txtInfo->EndUnderline();
+    txtInfo->EndBold();
+    txtInfo->Newline();
+  };
+
+  auto addText = [txtInfo](const wxString& text, bool translate = true,
+                           bool newline = true) {
+    txtInfo->WriteText(translate ? wxGetTranslation(text) : text);
+    if (newline) {
+      txtInfo->Newline();
+    }
+  };
+
   txtInfo->SetEditable(false);
   txtInfo->SetMinSize(wxSize(0, 80));
 
-  wxString s = "Fly-Through Mode";
-  txtInfo->BeginBold();
-  txtInfo->BeginUnderline();
-  txtInfo->WriteText(wxGetTranslation(s));
-  txtInfo->EndUnderline();
-  txtInfo->EndBold();
-  txtInfo->Newline();
-
-  s = "With the left panel in focus, press the Z key to toggle Fly-Through "
-      "mode.";
-  txtInfo->WriteText(wxGetTranslation(s));
+  addHeading(wxGetTranslation("Controls"));
+  addText("R\t", false, false);
+  addText("Reset view");
+  addText("Z\t", false, false);
+  addText("Toggle Fly-Through mode");
 
   vbox->AddSpacer(10);
-  vbox->Add(txtInfo, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(txtInfo, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   return box;
 }
