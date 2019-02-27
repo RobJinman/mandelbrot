@@ -73,9 +73,16 @@ void Mandelbrot::resize(int w, int h) {
     return;
   }
 
+  double yScale = static_cast<double>(h) / static_cast<double>(m_H);
+  double expectedW = m_W * yScale;
+  double xScale = w / expectedW;
+  double xRange = m_xmax - m_xmin;
+  m_xmax = m_xmin + xRange * xScale;
+
   m_W = w;
   m_H = h;
   glViewport(0, 0, w, h);
+
   updateUniforms();
 }
 
