@@ -44,6 +44,15 @@ void Canvas::setZoomPerFrame(double zoom) {
 }
 
 void Canvas::onTick(wxTimerEvent&) {
+  if (!m_initialised) {
+    initGl();
+  }
+
+  if (m_flyThroughMode) {
+    auto p = dampenCursorPos(getCursorPos());
+    m_mandelbrot.zoom(p.x, p.y, m_zoomPerFrame);
+  }
+
   wxClientDC dc(this);
   render(dc);
 }
@@ -94,10 +103,28 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
 
   m_mouseDown = true;
   m_mouseOrigin = e.GetPosition();
+
+  auto sz = GetSize();
+
+  size_t nBytes = 0;
+  uint8_t* data = m_mandelbrot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
+
+  wxImage image(sz.x, sz.y, data);
+  image = image.Mirror(false);
+
+  m_background.reset(new wxBitmap(image));
 }
 
 void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
   m_mouseDown = false;
+
+  if (m_doZoom) {
+    m_mandelbrot.zoom(m_mouseOrigin.x, m_mouseOrigin.y, m_mouseDest.x,
+                      m_mouseDest.y);
+    refresh();
+  }
+
+  m_doZoom = false;
 }
 
 void Canvas::onMouseMove(wxMouseEvent& e) {
@@ -105,11 +132,22 @@ void Canvas::onMouseMove(wxMouseEvent& e) {
     wxPoint p = e.GetPosition();
     wxSize sz(p.x - m_mouseOrigin.x, p.y - m_mouseOrigin.y);
 
-    wxClientDC dc(this);
-    dc.Clear();
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.SetPen(wxPen(wxColor(255, 0, 0), 2));
-    dc.DrawRectangle(m_mouseOrigin, sz);
+    wxSize winSz = GetClientSize();
+    float aspect = static_cast<float>(winSz.x) / static_cast<float>(winSz.y);
+    sz.y = sz.x / aspect;
+
+    if (sz.x * sz.x + sz.y * sz.y >= 64) {
+      wxClientDC dc(this);
+      if (m_background) {
+        dc.DrawBitmap(*m_background, 0, 0);
+      }
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.SetPen(wxPen(wxColor(255, 0, 0), 2));
+      dc.DrawRectangle(m_mouseOrigin, sz);
+
+      m_mouseDest = m_mouseOrigin + sz;
+      m_doZoom = true;
+    }
   }
 }
 
@@ -166,6 +204,10 @@ void Canvas::measureFrameRate() {
 }
 
 void Canvas::onPaint(wxPaintEvent&) {
+  if (!m_initialised) {
+    initGl();
+  }
+
   wxPaintDC dc(this);
   render(dc);
 }
@@ -196,15 +238,6 @@ wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
 void Canvas::render(wxDC&) {
   if (!IsShownOnScreen()) {
     return;
-  }
-
-  if (!m_initialised) {
-    initGl();
-  }
-
-  if (m_flyThroughMode) {
-    auto p = dampenCursorPos(getCursorPos());
-    m_mandelbrot.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
   wxGLCanvas::SetCurrent(*m_context);

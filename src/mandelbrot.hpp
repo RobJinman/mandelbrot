@@ -16,6 +16,7 @@ public:
   void resize(int w, int y);
   void draw();
   void zoom(double x, double y, double mag);
+  void zoom(double x0, double y0, double x1, double y1);
   void reset();
 
   void setMaxIterations(int maxI);

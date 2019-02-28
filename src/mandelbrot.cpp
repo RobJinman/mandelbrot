@@ -128,6 +128,10 @@ void Mandelbrot::init() {
 }
 
 uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  if (!m_initialised) {
+    EXCEPTION("Mandelbrot not initialised");
+  }
+
   int prevW = m_W;
   int prevH = m_H;
   m_W = w;
@@ -255,6 +259,10 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
 }
 
 void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
+  if (!m_initialised) {
+    return;
+  }
+
   try {
     GL_CHECK(glDeleteProgram(m_program));
     loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
@@ -270,6 +278,10 @@ void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
 }
 
 void Mandelbrot::setColourScheme(const string& presetName) {
+  if (!m_initialised) {
+    return;
+  }
+
   setColourSchemeImpl(PRESETS.at(presetName));
 }
 
@@ -284,6 +296,10 @@ void Mandelbrot::updateUniforms() {
 }
 
 void Mandelbrot::setMaxIterations(int maxI) {
+  if (!m_initialised) {
+    return;
+  }
+
   m_maxIterations = maxI;
   updateUniforms();
 }
@@ -308,9 +324,34 @@ void Mandelbrot::zoom(double x, double y, double mag) {
 
   m_xmin = centreX - 0.5 * xRangeNew;
   m_xmax = centreX + 0.5 * xRangeNew;
-
   m_ymin = centreY - 0.5 * yRangeNew;
   m_ymax = centreY + 0.5 * yRangeNew;
+
+  updateUniforms();
+}
+
+void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
+  if (!m_initialised) {
+    return;
+  }
+
+  // Flip and swap
+  y0 = m_H - 1 - y0;
+  y1 = m_H - 1 - y1;
+  std::swap(y0, y1);
+
+  double xRange = m_xmax - m_xmin;
+  double yRange = m_ymax - m_ymin;
+
+  double xmin = m_xmin + (x0 / m_W) * xRange;
+  double xmax = m_xmin + (x1 / m_W) * xRange;
+  double ymin = m_ymin + (y0 / m_H) * yRange;
+  double ymax = m_ymin + (y1 / m_H) * yRange;
+
+  m_xmin = xmin;
+  m_xmax = xmax;
+  m_ymin = ymin;
+  m_ymax = ymax;
 
   updateUniforms();
 }

@@ -51,9 +51,11 @@ private:
   bool m_flyThroughMode = false;
   double m_targetFps;
   double m_zoomPerFrame;
-
+  std::unique_ptr<wxBitmap> m_background;
   bool m_mouseDown = false;
   wxPoint m_mouseOrigin;
+  wxPoint m_mouseDest;
+  bool m_doZoom = false;
 
   wxDECLARE_EVENT_TABLE();
 };

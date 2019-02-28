@@ -420,6 +420,8 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
 
   wxImage image(w, h, data);
+  image = image.Mirror(false);
+
   image.SaveFile("fractal.bmp", wxBITMAP_TYPE_BMP);
 }
 
