@@ -112,16 +112,25 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   cboScheme->SetStringSelection(DEFAULT_COLOUR_SCHEME);
   cboScheme->Bind(wxEVT_CHOICE, &MainWindow::onSelectColourScheme, this);
 
+  wxFont codeFontNormal(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
+                        wxFONTWEIGHT_NORMAL);
+  wxFont codeFontBold(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
+                      wxFONTWEIGHT_BOLD);
+
   auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
     "vec3 computeColour(int i, float x, float y) {");
+  txtShaderCodePre->SetFont(codeFontBold);
   m_txtComputeColourImpl = constructTextBox(box,
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
                                             true);
+  m_txtComputeColourImpl->SetFont(codeFontNormal);
   auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+  txtShaderCodePost->SetFont(codeFontBold);
   m_txtCompileStatus = new wxTextCtrl(box, wxID_ANY, wxEmptyString,
                                       wxDefaultPosition,
                                       wxDefaultSize,
                                       wxTE_MULTILINE);
+  m_txtCompileStatus->SetFont(codeFontNormal);
   m_txtCompileStatus->SetEditable(false);
   m_txtCompileStatus->SetMinSize(wxSize(0, 80));
 
