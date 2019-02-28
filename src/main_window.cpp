@@ -410,6 +410,12 @@ void MainWindow::onRender() {
 }
 
 void MainWindow::onExportClick(wxCommandEvent&) {
+  wxFileDialog fileDialog(this, wxGetTranslation("Save as BMP image"), "",
+                          "", "BMP files (*.bmp)|*.bmp", wxFD_SAVE);
+  if (fileDialog.ShowModal() == wxID_CANCEL) {
+    return;
+  }
+
   long w = 0;
   m_txtExportWidth->GetValue().ToLong(&w);
 
@@ -422,7 +428,7 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   wxImage image(w, h, data);
   image = image.Mirror(false);
 
-  image.SaveFile("fractal.bmp", wxBITMAP_TYPE_BMP);
+  image.SaveFile(fileDialog.GetPath(), wxBITMAP_TYPE_BMP);
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
