@@ -90,6 +90,8 @@ void Canvas::deactivateFlyThroughMode() {
 }
 
 void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
+  SetFocus();
+
   m_mouseDown = true;
   m_mouseOrigin = e.GetPosition();
 }

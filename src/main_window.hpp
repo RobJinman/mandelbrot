@@ -40,11 +40,14 @@ private:
   void onCanvasResize(wxSizeEvent& e);
   void onExportHeightChange(wxCommandEvent& e);
   void onExportWidthChange(wxCommandEvent& e);
+  void onCanvasGainFocus(wxFocusEvent& e);
+  void onCanvasLoseFocus(wxFocusEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
   wxSplitterWindow* m_splitter;
   wxBoxSizer* m_vbox;
   wxNotebook* m_rightPanel;
+  wxPanel* m_leftPanel;
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
   wxTextCtrl* m_txtTargetFps;

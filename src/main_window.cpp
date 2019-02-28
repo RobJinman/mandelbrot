@@ -40,19 +40,28 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
   constructLeftPanel();
   constructRightPanel();
 
-  m_splitter->SplitVertically(m_canvas, m_rightPanel);
+  m_splitter->SplitVertically(m_leftPanel, m_rightPanel);
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
 }
 
 void MainWindow::constructLeftPanel() {
+  m_leftPanel = new wxPanel(m_splitter, wxID_ANY);
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  m_leftPanel->SetSizer(vbox);
+  m_leftPanel->SetCanFocus(true);
+
   int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
-  m_canvas = new Canvas(m_splitter, args, *m_mandelbrot,
+  m_canvas = new Canvas(m_leftPanel, args, *m_mandelbrot,
                         [this]() { onRender(); });
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
   m_canvas->Bind(wxEVT_SIZE, &MainWindow::onCanvasResize, this);
+  m_canvas->Bind(wxEVT_SET_FOCUS, &MainWindow::onCanvasGainFocus, this);
+  m_canvas->Bind(wxEVT_KILL_FOCUS, &MainWindow::onCanvasLoseFocus, this);
+
+  vbox->Add(m_canvas, 1, wxEXPAND | wxALL, 5);
 }
 
 wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
@@ -367,6 +376,14 @@ void MainWindow::adjustExportSize(bool adjustWidth) {
     long exportH = exportW / aspect;
     m_txtExportHeight->ChangeValue(std::to_string(exportH));
   }
+}
+
+void MainWindow::onCanvasGainFocus(wxFocusEvent&) {
+  m_leftPanel->SetBackgroundColour(*wxBLUE);
+}
+
+void MainWindow::onCanvasLoseFocus(wxFocusEvent&) {
+  m_leftPanel->SetBackgroundColour(*wxLIGHT_GREY);
 }
 
 void MainWindow::onCanvasResize(wxSizeEvent& e) {
