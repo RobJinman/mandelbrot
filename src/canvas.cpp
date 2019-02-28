@@ -43,13 +43,14 @@ void Canvas::setZoomPerFrame(double zoom) {
   m_zoomPerFrame = zoom;
 }
 
-void Canvas::onTick(wxTimerEvent& e) {
+void Canvas::onTick(wxTimerEvent&) {
   wxClientDC dc(this);
   render(dc);
 }
 
-void Canvas::onResize(wxSizeEvent&) {
+void Canvas::onResize(wxSizeEvent& e) {
   resize();
+  e.Skip();
 }
 
 void Canvas::resize() {
@@ -93,7 +94,7 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   m_mouseOrigin = e.GetPosition();
 }
 
-void Canvas::onLeftMouseBtnUp(wxMouseEvent& e) {
+void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
   m_mouseDown = false;
 }
 
@@ -162,7 +163,7 @@ void Canvas::measureFrameRate() {
   ++m_frame;
 }
 
-void Canvas::onPaint(wxPaintEvent& e) {
+void Canvas::onPaint(wxPaintEvent&) {
   wxPaintDC dc(this);
   render(dc);
 }
@@ -190,7 +191,7 @@ wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
   return p_;
 }
 
-void Canvas::render(wxDC& dc) {
+void Canvas::render(wxDC&) {
   if (!IsShownOnScreen()) {
     return;
   }

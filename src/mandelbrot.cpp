@@ -81,15 +81,29 @@ void Mandelbrot::resize(int w, int h) {
 
   m_W = w;
   m_H = h;
-  glViewport(0, 0, w, h);
+  GL_CHECK(glViewport(0, 0, w, h));
 
   updateUniforms();
 }
 
 void Mandelbrot::init() {
+  GL_CHECK(glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE));
+  GL_CHECK(glPixelStorei(GL_PACK_LSB_FIRST, GL_FALSE));
+  GL_CHECK(glPixelStorei(GL_PACK_ROW_LENGTH, 0));
+  GL_CHECK(glPixelStorei(GL_PACK_SKIP_ROWS, 0));
+  GL_CHECK(glPixelStorei(GL_PACK_SKIP_PIXELS, 0));
+  GL_CHECK(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+
+  GL_CHECK(glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE));
+  GL_CHECK(glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE));
+  GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
+  GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_ROWS, 0));
+  GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0));
+  GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
   GLuint vertexArray;
-  glGenVertexArrays(1, &vertexArray);
-  glBindVertexArray(vertexArray);
+  GL_CHECK(glGenVertexArrays(1, &vertexArray));
+  GL_CHECK(glBindVertexArray(vertexArray));
 
   static const GLfloat vertexBufferData[] = {
     -1.0f, -1.0f, 0.0f, // A
@@ -100,10 +114,10 @@ void Mandelbrot::init() {
     -1.0f, 1.0f, 0.0f,  // D
   };
 
-  glGenBuffers(1, &m_vertexBuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData), vertexBufferData,
-               GL_STATIC_DRAW);
+  GL_CHECK(glGenBuffers(1, &m_vertexBuffer));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
+  GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData),
+                        vertexBufferData, GL_STATIC_DRAW));
 
   loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
               PRESETS.at(DEFAULT_COLOUR_SCHEME));
@@ -114,26 +128,35 @@ void Mandelbrot::init() {
 }
 
 uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  int prevW = m_W;
+  int prevH = m_H;
+  m_W = w;
+  m_H = h;
+  GL_CHECK(glViewport(0, 0, w, h));
+  updateUniforms();
+
   GLuint frameBufferName = 0;
-  glGenFramebuffers(1, &frameBufferName);
-  glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName);
+  GL_CHECK(glGenFramebuffers(1, &frameBufferName));
+  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName));
 
   GLuint texture = 0;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  GL_CHECK(glGenTextures(1, &texture));
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE,
-               nullptr);
+  GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
+                        GL_UNSIGNED_BYTE, nullptr));
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+  GL_CHECK(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture,
+                                0));
 
   GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-  glDrawBuffers(1, drawBuffers);
+  GL_CHECK(glDrawBuffers(1, drawBuffers));
 
-  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+  auto status = GL_CHECK(glCheckFramebufferStatus(GL_FRAMEBUFFER));
+  if (status != GL_FRAMEBUFFER_COMPLETE) {
     EXCEPTION("Error creating render target");
   }
 
@@ -142,29 +165,32 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
   bytes = w * h * 3;
   uint8_t* data = new uint8_t[bytes];
 
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+  GL_CHECK(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
 
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+  resize(prevW, prevH);
 
   return data;
 }
 
 void Mandelbrot::initUniforms() {
-  m_uniforms.uW = glGetUniformLocation(m_program, "W");
-  m_uniforms.uH = glGetUniformLocation(m_program, "H");
-  m_uniforms.uMaxIterations = glGetUniformLocation(m_program, "maxIterations");
-  m_uniforms.uXmin = glGetUniformLocation(m_program, "xmin");
-  m_uniforms.uXmax = glGetUniformLocation(m_program, "xmax");
-  m_uniforms.uYmin = glGetUniformLocation(m_program, "ymin");
-  m_uniforms.uYmax = glGetUniformLocation(m_program, "ymax");
+  m_uniforms.uW = GL_CHECK(glGetUniformLocation(m_program, "W"));
+  m_uniforms.uH = GL_CHECK(glGetUniformLocation(m_program, "H"));
+  m_uniforms.uMaxIterations = GL_CHECK(glGetUniformLocation(m_program,
+                                                            "maxIterations"));
+  m_uniforms.uXmin = GL_CHECK(glGetUniformLocation(m_program, "xmin"));
+  m_uniforms.uXmax = GL_CHECK(glGetUniformLocation(m_program, "xmax"));
+  m_uniforms.uYmin = GL_CHECK(glGetUniformLocation(m_program, "ymin"));
+  m_uniforms.uYmax = GL_CHECK(glGetUniformLocation(m_program, "ymax"));
 
   updateUniforms();
 }
 
 GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
                               const string& computeColourImpl) {
-  GLuint shaderId = glCreateShader(type);
+  GLuint shaderId = GL_CHECK(glCreateShader(type));
 
   std::ifstream fin(srcPath);
   string shaderSrc{std::istreambuf_iterator<char>(fin),
@@ -180,14 +206,14 @@ GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
   int infoLogLen = 0;
 
   const char* srcPtr = shaderSrc.c_str();
-  glShaderSource(shaderId, 1, &srcPtr, NULL);
-  glCompileShader(shaderId);
+  GL_CHECK(glShaderSource(shaderId, 1, &srcPtr, NULL));
+  GL_CHECK(glCompileShader(shaderId));
 
-  glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result);
-  glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLen);
+  GL_CHECK(glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result));
+  GL_CHECK(glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLen));
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
-    glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data());
+    GL_CHECK(glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data()));
     throw ShaderException(errMsg.data());
   }
 
@@ -201,36 +227,36 @@ void Mandelbrot::loadShaders(const string& vertShaderPath,
   GLuint fragShader = loadShader(fragShaderPath, GL_FRAGMENT_SHADER,
                                  computeColourImpl);
 
-  m_program = glCreateProgram();
-  glAttachShader(m_program, vertShader);
-  glAttachShader(m_program, fragShader);
-  glLinkProgram(m_program);
+  m_program = GL_CHECK(glCreateProgram());
+  GL_CHECK(glAttachShader(m_program, vertShader));
+  GL_CHECK(glAttachShader(m_program, fragShader));
+  GL_CHECK(glLinkProgram(m_program));
 
   GLint result = GL_FALSE;
   int infoLogLen = 0;
 
-  glGetProgramiv(m_program, GL_LINK_STATUS, &result);
-  glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLogLen);
+  GL_CHECK(glGetProgramiv(m_program, GL_LINK_STATUS, &result));
+  GL_CHECK(glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLogLen));
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
-    glGetProgramInfoLog(m_program, infoLogLen, NULL, errMsg.data());
+    GL_CHECK(glGetProgramInfoLog(m_program, infoLogLen, NULL, errMsg.data()));
     throw ShaderException(errMsg.data());
   }
 
-  glDetachShader(m_program, vertShader);
-  glDetachShader(m_program, fragShader);
+  GL_CHECK(glDetachShader(m_program, vertShader));
+  GL_CHECK(glDetachShader(m_program, fragShader));
 
-  glDeleteShader(vertShader);
-  glDeleteShader(fragShader);
+  GL_CHECK(glDeleteShader(vertShader));
+  GL_CHECK(glDeleteShader(fragShader));
 
-  glUseProgram(m_program);
+  GL_CHECK(glUseProgram(m_program));
 
   m_activeComputeColourImpl = computeColourImpl;
 }
 
 void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
   try {
-    glDeleteProgram(m_program);
+    GL_CHECK(glDeleteProgram(m_program));
     loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
                 computeColourImpl);
     updateUniforms();
@@ -248,13 +274,13 @@ void Mandelbrot::setColourScheme(const string& presetName) {
 }
 
 void Mandelbrot::updateUniforms() {
-  glUniform1f(m_uniforms.uW, m_W);
-  glUniform1f(m_uniforms.uH, m_H);
-  glUniform1i(m_uniforms.uMaxIterations, m_maxIterations);
-  glUniform1f(m_uniforms.uXmin, m_xmin);
-  glUniform1f(m_uniforms.uXmax, m_xmax);
-  glUniform1f(m_uniforms.uYmin, m_ymin);
-  glUniform1f(m_uniforms.uYmax, m_ymax);
+  GL_CHECK(glUniform1f(m_uniforms.uW, m_W));
+  GL_CHECK(glUniform1f(m_uniforms.uH, m_H));
+  GL_CHECK(glUniform1i(m_uniforms.uMaxIterations, m_maxIterations));
+  GL_CHECK(glUniform1f(m_uniforms.uXmin, m_xmin));
+  GL_CHECK(glUniform1f(m_uniforms.uXmax, m_xmax));
+  GL_CHECK(glUniform1f(m_uniforms.uYmin, m_ymin));
+  GL_CHECK(glUniform1f(m_uniforms.uYmax, m_ymax));
 }
 
 void Mandelbrot::setMaxIterations(int maxI) {
@@ -294,15 +320,15 @@ void Mandelbrot::draw() {
     return;
   }
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glUseProgram(m_program);
+  GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+  GL_CHECK(glUseProgram(m_program));
 
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  GL_CHECK(glEnableVertexAttribArray(0));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
+  GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  glDisableVertexAttribArray(0);
+  GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+  GL_CHECK(glDisableVertexAttribArray(0));
 }
 
 double Mandelbrot::computeMagnification() const {

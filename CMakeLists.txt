@@ -81,7 +81,13 @@ if (PLATFORM_LINUX)
     -lpangocairo-1.0 -lpangoft2-1.0 -lpangoxft-1.0
     -lpng -lgdk-x11-2.0 -lgtk-x11-2.0 -lexpat -lz
   )
-  set(PLATFORM_COMPILE_FLAGS -DWXUSINGDLL -D__WXGTK2__ -D__WXGTK__)
+  set(PLATFORM_COMPILE_FLAGS_COMMON -DWXUSINGDLL
+                                    -D__WXGTK2__
+                                    -D__WXGTK__
+                                    -Wall -Wextra)
+  set(PLATFORM_COMPILE_FLAGS_RELEASE -O3)
+  set(PLATFORM_COMPILE_FLAGS_DEBUG -g)
+
   set(PLATFORM_LINK_FLAGS)
 
   include_directories(
@@ -90,16 +96,19 @@ if (PLATFORM_LINUX)
   )
 elseif (PLATFORM_WINDOWS)
   set(PLATFORM_LIBS -defaultlib:comctl32.lib -defaultlib:rpcrt4.lib)
-  set(PLATFORM_COMPILE_FLAGS -DGLEW_STATIC -DwxUSE_OLE)
+  set(PLATFORM_COMPILE_FLAGS_COMMON -DGLEW_STATIC -DwxUSE_OLE)
+  set(PLATFORM_COMPILE_FLAGS_RELEASE)
+  set(PLATFORM_COMPILE_FLAGS_DEBUG)
   set(PLATFORM_LINK_FLAGS /SUBSYSTEM:WINDOWS /ENTRY:WinMainCRTStartup)
 
   include_directories(
     "${VENDOR_DIR}/lib/vc_x64_lib/mswu"
   )
 elseif (PLATFORM_OSX)
-  # TODO
   set(PLATFORM_LIBS)
-  set(PLATFORM_COMPILE_FLAGS)
+  set(PLATFORM_COMPILE_FLAGS_COMMON)
+  set(PLATFORM_COMPILE_FLAGS_RELEASE)
+  set(PLATFORM_COMPILE_FLAGS_DEBUG)
   set(PLATFORM_LINK_FLAGS)
 
   include_directories(
@@ -120,7 +129,11 @@ add_executable(mandelbrot ${CPP_SOURCES})
 
 target_compile_options(
   mandelbrot
-  PRIVATE ${WX_OPTIONS} ${GLEW_OPTIONS} ${PLATFORM_COMPILE_FLAGS}
+  PRIVATE ${WX_OPTIONS}
+          ${GLEW_OPTIONS}
+          ${PLATFORM_COMPILE_FLAGS_COMMON}
+          "$<$<CONFIG:RELEASE>:${PLATFORM_COMPILE_FLAGS_RELEASE}>"
+          "$<$<CONFIG:DEBUG>:${PLATFORM_COMPILE_FLAGS_DEBUG}>"
 )
 target_link_libraries(mandelbrot ${ALL_LIBS})
 target_link_options(mandelbrot PRIVATE ${PLATFORM_LINK_FLAGS})

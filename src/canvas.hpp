@@ -41,8 +41,8 @@ private:
 
   bool m_initialised = false;
   wxTimer* m_timer;
-  std::function<void()> m_onRender;
   Mandelbrot& m_mandelbrot;
+  std::function<void()> m_onRender;
   std::unique_ptr<wxGLContext> m_context;
   long long m_frame = 0;
   double m_measuredFrameRate = 0.0;

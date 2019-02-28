@@ -9,6 +9,7 @@
 
 static const int WINDOW_W = 1000;
 static const int WINDOW_H = 600;
+static const int DEFAULT_EXPORT_HEIGHT = 1000;
 
 static std::string formatDouble(double d) {
   std::stringstream ss;
@@ -51,6 +52,7 @@ void MainWindow::constructLeftPanel() {
                         [this]() { onRender(); });
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
+  m_canvas->Bind(wxEVT_SIZE, &MainWindow::onCanvasResize, this);
 }
 
 wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
@@ -147,6 +149,7 @@ wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
   auto strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
   m_txtMaxIterations = constructTextBox(box, strMaxI);
+  m_txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
@@ -168,10 +171,12 @@ wxStaticBox* MainWindow::constructFlyThroughParamsPanel(wxWindow* parent) {
   auto strFps = std::to_string(DEFAULT_TARGET_FPS);
   auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
   m_txtTargetFps = constructTextBox(box, strFps);
+  m_txtTargetFps->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   auto strZoom = std::to_string(DEFAULT_ZOOM_PER_FRAME);
   auto lblZoom = constructLabel(box, wxGetTranslation("Zoom per frame"));
   m_txtZoomPerFrame = constructTextBox(box, strZoom);
+  m_txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
@@ -239,9 +244,14 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
   m_txtExportWidth = constructTextBox(box, wxEmptyString);
+  m_txtExportWidth->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  m_txtExportWidth->Bind(wxEVT_TEXT, &MainWindow::onExportWidthChange, this);
 
   auto lblHeight = constructLabel(box, wxGetTranslation("Height"));
-  m_txtExportHeight = constructTextBox(box, wxEmptyString);
+  m_txtExportHeight = constructTextBox(box,
+                                       std::to_string(DEFAULT_EXPORT_HEIGHT));
+  m_txtExportHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  m_txtExportHeight->Bind(wxEVT_TEXT, &MainWindow::onExportHeightChange, this);
 
   auto btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
   btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
@@ -329,28 +339,39 @@ void MainWindow::constructMenu() {
   SetMenuBar(menuBar);
 }
 
-static bool tryGetIntFromTextCtrl(wxTextCtrl& txt, int& value) {
-  try {
-    value = std::stoi(txt.GetValue().ToStdString());
-  }
-  catch (...) {
-    txt.SetValue(wxGetTranslation("error"));
-    return false;
-  }
+void MainWindow::adjustExportSize(bool adjustWidth) {
+  float canvasW = m_canvas->GetSize().x;
+  float canvasH = m_canvas->GetSize().y;
+  float aspect = canvasW / canvasH;
 
-  return true;
+  if (adjustWidth) {
+    long exportH = 0;
+    m_txtExportHeight->GetValue().ToLong(&exportH);
+
+    long exportW = exportH * aspect;
+    m_txtExportWidth->ChangeValue(std::to_string(exportW));
+  }
+  else {
+    long exportW = 0;
+    m_txtExportWidth->GetValue().ToLong(&exportW);
+
+    long exportH = exportW / aspect;
+    m_txtExportHeight->ChangeValue(std::to_string(exportH));
+  }
 }
 
-static bool tryGetDoubleFromTextCtrl(wxTextCtrl& txt, double& value) {
-  try {
-    value = std::stod(txt.GetValue().ToStdString());
-  }
-  catch (...) {
-    txt.SetValue(wxGetTranslation("error"));
-    return false;
-  }
+void MainWindow::onCanvasResize(wxSizeEvent& e) {
+  adjustExportSize(true);
 
-  return true;
+  e.Skip();
+}
+
+void MainWindow::onExportHeightChange(wxCommandEvent&) {
+  adjustExportSize(true);
+}
+
+void MainWindow::onExportWidthChange(wxCommandEvent&) {
+  adjustExportSize(false);
 }
 
 void MainWindow::onRender() {
@@ -362,38 +383,35 @@ void MainWindow::onRender() {
   m_dataFields.txtYMax->SetLabel(formatDouble(m_mandelbrot->getYMax()));
 }
 
-void MainWindow::onExportClick(wxCommandEvent& e) {
-  int w = 0;
-  int h = 0;
-  if (tryGetIntFromTextCtrl(*m_txtExportWidth, w)
-      && tryGetIntFromTextCtrl(*m_txtExportHeight, h)) {
+void MainWindow::onExportClick(wxCommandEvent&) {
+  long w = 0;
+  m_txtExportWidth->GetValue().ToLong(&w);
 
-    size_t nBytes = 0;
-    uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+  long h = 0;
+  m_txtExportHeight->GetValue().ToLong(&h);
 
-    wxImage image(w, h, data);
-    image.SaveFile("fractal.bmp", wxBITMAP_TYPE_BMP);
-  }
+  size_t nBytes = 0;
+  uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+
+  wxImage image(w, h, data);
+  image.SaveFile("fractal.bmp", wxBITMAP_TYPE_BMP);
 }
 
-void MainWindow::onApplyParamsClick(wxCommandEvent& e) {
+void MainWindow::onApplyParamsClick(wxCommandEvent&) {
   bool needRefresh = false;
 
-  int maxI = 0;
-  if (tryGetIntFromTextCtrl(*m_txtMaxIterations, maxI)) {
-    m_mandelbrot->setMaxIterations(maxI);
-    needRefresh = true;
-  }
+  long maxI = 0;
+  m_txtMaxIterations->GetValue().ToLong(&maxI);
+  m_mandelbrot->setMaxIterations(maxI);
+  needRefresh = true;
 
-  double targetFps = 0.0;
-  if (tryGetDoubleFromTextCtrl(*m_txtTargetFps, targetFps)) {
-    m_canvas->setTargetFps(targetFps);
-  }
+  double targetFps = 0;
+  m_txtTargetFps->GetValue().ToDouble(&targetFps);
+  m_canvas->setTargetFps(targetFps);
 
-  double zoomPerFrame = 0.0;
-  if (tryGetDoubleFromTextCtrl(*m_txtZoomPerFrame, zoomPerFrame)) {
-    m_canvas->setZoomPerFrame(zoomPerFrame);
-  }
+  double zoomPerFrame = 0;
+  m_txtZoomPerFrame->GetValue().ToDouble(&zoomPerFrame);
+  m_canvas->setZoomPerFrame(zoomPerFrame);
 
   if (needRefresh) {
     m_canvas->refresh();
@@ -418,7 +436,7 @@ void MainWindow::onSelectColourScheme(wxCommandEvent& e) {
   applyColourScheme();
 }
 
-void MainWindow::onApplyColourSchemeClick(wxCommandEvent& e) {
+void MainWindow::onApplyColourSchemeClick(wxCommandEvent&) {
   applyColourScheme();
 }
 

@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <sstream>
+#include "gl.hpp"
 
 #define EXCEPTION(msg) \
   { \
@@ -9,6 +10,18 @@
     ss << msg << " (FILE: " << __FILE__ << ", LINE: " << __LINE__ << ")" \
        << std::endl; \
     throw std::runtime_error(ss.str()); \
+  }
+
+#define GL_CHECK(x) \
+  x; \
+  { \
+    GLenum glError = glGetError(); \
+    if (glError != GL_NO_ERROR) { \
+      std::stringstream ss; \
+      ss << "OpenGL error, code=0x" << glError << " (FILE: " << __FILE__ \
+        << ", LINE: " << __LINE__ << ")" << std::endl; \
+      throw OpenGlException(ss.str(), glError); \
+    } \
   }
 
 class ShaderException : public std::runtime_error {
@@ -23,4 +36,13 @@ public:
 
 private:
   const std::string m_errorOutput;
+};
+
+class OpenGlException : public std::runtime_error {
+public:
+  OpenGlException(const std::string& msg, GLenum code)
+    : runtime_error(msg),
+      code(code) {}
+
+  const GLenum code;
 };

@@ -28,6 +28,7 @@ private:
 
   void onRender();
   void applyColourScheme();
+  void adjustExportSize(bool adjustWidth);
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
@@ -36,6 +37,9 @@ private:
   void onApplyColourSchemeClick(wxCommandEvent& e);
   void onExportClick(wxCommandEvent& e);
   void onSelectColourScheme(wxCommandEvent& e);
+  void onCanvasResize(wxSizeEvent& e);
+  void onExportHeightChange(wxCommandEvent& e);
+  void onExportWidthChange(wxCommandEvent& e);
 
   std::unique_ptr<Mandelbrot> m_mandelbrot;
   wxSplitterWindow* m_splitter;
