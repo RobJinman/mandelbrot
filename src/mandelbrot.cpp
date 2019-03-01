@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <map>
+#include <iostream>
 #include "mandelbrot.hpp"
 #include "exception.hpp"
 
@@ -51,42 +52,109 @@ static const double INITIAL_YMIN = -2.0;
 static const double INITIAL_YMAX = 2.0;
 
 Mandelbrot::Mandelbrot(int W, int H) {
+  m_alive = true;
+  m_busy = false;
+  m_initialised = false;
+
   m_W = W;
   m_H = H;
+
+  m_thread = std::thread(&Mandelbrot::loop_, this);
+
   reset();
 }
 
-void Mandelbrot::reset() {
-  m_maxIterations = DEFAULT_MAX_ITERATIONS;
-  m_xmin = INITIAL_XMIN;
-  m_xmax = INITIAL_XMAX;
-  m_ymin = INITIAL_YMIN;
-  m_ymax = INITIAL_YMAX;
+void Mandelbrot::notifyThatFunctionIsPending(const std::string& name) {
+  {
+    std::lock_guard<std::mutex> lock(m_cvMutex);
+    m_pendingFunctionCall = name;
+  }
+  m_cv.notify_one();
+}
 
-  if (m_initialised) {
-    updateUniforms();
+void Mandelbrot::awaitResult() {
+  std::unique_lock<std::mutex> lock(m_cvMutex);
+
+  m_cv.wait(lock, [this]() {
+    return m_pendingFunctionCall.length() == 0;
+  });
+}
+
+void Mandelbrot::loop_() {
+  while (true) {
+    std::unique_lock<std::mutex> lock(m_cvMutex);
+    m_cv.wait(lock, [this]() {
+      return m_pendingFunctionCall.length() > 0 || !m_alive;
+    });
+
+    if (!m_alive) {
+      break;
+    }
+
+    doDispatch_();
+
+    m_pendingFunctionCall = "";
+
+    lock.unlock();
+    m_cv.notify_one();
   }
 }
 
-void Mandelbrot::resize(int w, int h) {
-  if (!m_initialised) {
+void Mandelbrot::doDispatch_() {
+  if (m_busy) {
     return;
   }
 
-  double yScale = static_cast<double>(h) / static_cast<double>(m_H);
-  double expectedW = m_W * yScale;
-  double xScale = w / expectedW;
-  double xRange = m_xmax - m_xmin;
-  m_xmax = m_xmin + xRange * xScale;
+  m_busy = true;
 
-  m_W = w;
-  m_H = h;
-  GL_CHECK(glViewport(0, 0, w, h));
+  if (m_pendingFunctionCall == "init") {
+    init_(m_initArgs.fnCreateGlContext);
+  }
+  else if (m_pendingFunctionCall == "loadShaders") {
+    loadShaders_(m_loadShadersArgs.vertShaderPath,
+                 m_loadShadersArgs.fragShaderPath,
+                 m_loadShadersArgs.computeColourImpl);
+  }
+  else if (m_pendingFunctionCall == "renderToMainMemoryBuffer") {
+    m_renderToMainMemoryBufferArgs.result =
+      renderToMainMemoryBuffer_(m_renderToMainMemoryBufferArgs.w,
+                                m_renderToMainMemoryBufferArgs.h,
+                                *m_renderToMainMemoryBufferArgs.bytes);
+  }
+  else if (m_pendingFunctionCall == "updateUniforms") {
+    updateUniforms_();
+  }
+  else if (m_pendingFunctionCall == "resize") {
+    resize_(m_resizeArgs.w, m_resizeArgs.h);
+  }
+  else if (m_pendingFunctionCall == "draw") {
+    draw_();
+  }
+  else {
+    m_busy = false;
+    EXCEPTION("No function with name '" << m_pendingFunctionCall << "'");
+  }
+  // ...
 
-  updateUniforms();
+  m_busy = false;
 }
 
-void Mandelbrot::init() {
+void Mandelbrot::init(const std::function<void()>& fnCreateGlContext) { 
+  m_initArgs.fnCreateGlContext = fnCreateGlContext;
+
+  notifyThatFunctionIsPending("init");
+  awaitResult();
+}
+
+void Mandelbrot::init_(const std::function<void()>& fnCreateGlContext) {
+  fnCreateGlContext();
+
+  glewExperimental = GL_TRUE;
+  GLenum result = glewInit();
+  if (result != GLEW_OK) {
+    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
+  }
+
   GL_CHECK(glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE));
   GL_CHECK(glPixelStorei(GL_PACK_LSB_FIRST, GL_FALSE));
   GL_CHECK(glPixelStorei(GL_PACK_ROW_LENGTH, 0));
@@ -119,15 +187,66 @@ void Mandelbrot::init() {
   GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData),
                         vertexBufferData, GL_STATIC_DRAW));
 
-  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-              PRESETS.at(DEFAULT_COLOUR_SCHEME));
+  loadShaders_("data/vert_shader.glsl", "data/frag_shader.glsl",
+               PRESETS.at(DEFAULT_COLOUR_SCHEME));
 
-  initUniforms();
+  initUniforms_();
 
   m_initialised = true;
 }
 
-uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+void Mandelbrot::reset() {
+  m_maxIterations = DEFAULT_MAX_ITERATIONS;
+  m_xmin = INITIAL_XMIN;
+  m_xmax = INITIAL_XMAX;
+  m_ymin = INITIAL_YMIN;
+  m_ymax = INITIAL_YMAX;
+
+  if (m_initialised) {
+    notifyThatFunctionIsPending("updateUniforms");
+    awaitResult();
+  }
+}
+
+void Mandelbrot::resize(int w, int h) {
+  m_resizeArgs.w = w;
+  m_resizeArgs.h = h;
+  notifyThatFunctionIsPending("resize");
+  awaitResult();
+}
+
+void Mandelbrot::resize_(int w, int h) {
+  if (!m_initialised) {
+    return;
+  }
+
+  double yScale = static_cast<double>(h) / static_cast<double>(m_H);
+  double expectedW = m_W * yScale;
+  double xScale = w / expectedW;
+  double xRange = m_xmax - m_xmin;
+  m_xmax = m_xmin + xRange * xScale;
+
+  m_W = w;
+  m_H = h;
+  GL_CHECK(glViewport(0, 0, w, h));
+
+  updateUniforms_();
+}
+
+std::future<uint8_t*> Mandelbrot::renderToMainMemoryBuffer(int w, int h,
+                                                           size_t& bytes) {
+  m_renderToMainMemoryBufferArgs.w = w;
+  m_renderToMainMemoryBufferArgs.h = h;
+  m_renderToMainMemoryBufferArgs.bytes = &bytes;
+  notifyThatFunctionIsPending("renderToMainMemoryBuffer");
+  
+  return std::async(std::launch::async, [this]() {
+    awaitResult();
+    return m_renderToMainMemoryBufferArgs.result;
+  });
+}
+
+uint8_t* Mandelbrot::renderToMainMemoryBuffer_(int w, int h, size_t& bytes) {
   if (!m_initialised) {
     EXCEPTION("Mandelbrot not initialised");
   }
@@ -137,7 +256,7 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
   m_W = w;
   m_H = h;
   GL_CHECK(glViewport(0, 0, w, h));
-  updateUniforms();
+  updateUniforms_();
 
   GLuint frameBufferName = 0;
   GL_CHECK(glGenFramebuffers(1, &frameBufferName));
@@ -164,7 +283,7 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
     EXCEPTION("Error creating render target");
   }
 
-  draw();
+  draw_();
 
   bytes = w * h * 3;
   uint8_t* data = new uint8_t[bytes];
@@ -174,12 +293,12 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
 
   GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
-  resize(prevW, prevH);
+  resize_(prevW, prevH);
 
   return data;
 }
 
-void Mandelbrot::initUniforms() {
+void Mandelbrot::initUniforms_() {
   m_uniforms.uW = GL_CHECK(glGetUniformLocation(m_program, "W"));
   m_uniforms.uH = GL_CHECK(glGetUniformLocation(m_program, "H"));
   m_uniforms.uMaxIterations = GL_CHECK(glGetUniformLocation(m_program,
@@ -189,11 +308,11 @@ void Mandelbrot::initUniforms() {
   m_uniforms.uYmin = GL_CHECK(glGetUniformLocation(m_program, "ymin"));
   m_uniforms.uYmax = GL_CHECK(glGetUniformLocation(m_program, "ymax"));
 
-  updateUniforms();
+  updateUniforms_();
 }
 
-GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
-                              const string& computeColourImpl) {
+GLuint Mandelbrot::loadShader_(const string& srcPath, GLuint type,
+                               const string& computeColourImpl) {
   GLuint shaderId = GL_CHECK(glCreateShader(type));
 
   std::ifstream fin(srcPath);
@@ -224,12 +343,16 @@ GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
   return shaderId;
 }
 
-void Mandelbrot::loadShaders(const string& vertShaderPath,
-                             const string& fragShaderPath,
-                             const string& computeColourImpl) {
-  GLuint vertShader = loadShader(vertShaderPath, GL_VERTEX_SHADER);
-  GLuint fragShader = loadShader(fragShaderPath, GL_FRAGMENT_SHADER,
-                                 computeColourImpl);
+void Mandelbrot::loadShaders_(const string& vertShaderPath,
+                              const string& fragShaderPath,
+                              const string& computeColourImpl) {
+  GLuint vertShader = loadShader_(vertShaderPath, GL_VERTEX_SHADER);
+  GLuint fragShader = loadShader_(fragShaderPath, GL_FRAGMENT_SHADER,
+                                  computeColourImpl);
+
+  if (m_program != 0) {
+    GL_CHECK(glDeleteProgram(m_program));
+  }
 
   m_program = GL_CHECK(glCreateProgram());
   GL_CHECK(glAttachShader(m_program, vertShader));
@@ -264,14 +387,24 @@ void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
   }
 
   try {
-    GL_CHECK(glDeleteProgram(m_program));
-    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-                computeColourImpl);
-    updateUniforms();
+    m_loadShadersArgs.vertShaderPath = "data/vert_shader.glsl";
+    m_loadShadersArgs.fragShaderPath = "data/frag_shader.glsl";
+    m_loadShadersArgs.computeColourImpl = computeColourImpl;
+    notifyThatFunctionIsPending("loadShaders");
+    awaitResult();
+
+    notifyThatFunctionIsPending("updateUniforms");
+    awaitResult();
   }
   catch (const ShaderException&) {
-    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-                m_activeComputeColourImpl);
+    m_loadShadersArgs.vertShaderPath = "data/vert_shader.glsl";
+    m_loadShadersArgs.fragShaderPath = "data/frag_shader.glsl";
+    m_loadShadersArgs.computeColourImpl = m_activeComputeColourImpl;
+    notifyThatFunctionIsPending("loadShaders");
+    awaitResult();
+
+    notifyThatFunctionIsPending("updateUniforms");
+    awaitResult();
 
     throw;
   }
@@ -285,7 +418,7 @@ void Mandelbrot::setColourScheme(const string& presetName) {
   setColourSchemeImpl(PRESETS.at(presetName));
 }
 
-void Mandelbrot::updateUniforms() {
+void Mandelbrot::updateUniforms_() {
   GL_CHECK(glUniform1f(m_uniforms.uW, m_W));
   GL_CHECK(glUniform1f(m_uniforms.uH, m_H));
   GL_CHECK(glUniform1i(m_uniforms.uMaxIterations, m_maxIterations));
@@ -301,7 +434,9 @@ void Mandelbrot::setMaxIterations(int maxI) {
   }
 
   m_maxIterations = maxI;
-  updateUniforms();
+
+  notifyThatFunctionIsPending("updateUniforms");
+  awaitResult();
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {
@@ -327,7 +462,8 @@ void Mandelbrot::zoom(double x, double y, double mag) {
   m_ymin = centreY - 0.5 * yRangeNew;
   m_ymax = centreY + 0.5 * yRangeNew;
 
-  updateUniforms();
+  notifyThatFunctionIsPending("updateUniforms");
+  awaitResult();
 }
 
 void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
@@ -353,10 +489,16 @@ void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
   m_ymin = ymin;
   m_ymax = ymax;
 
-  updateUniforms();
+  notifyThatFunctionIsPending("updateUniforms");
+  awaitResult();
 }
 
 void Mandelbrot::draw() {
+  notifyThatFunctionIsPending("draw");
+  awaitResult();
+}
+
+void Mandelbrot::draw_() {
   if (!m_initialised) {
     return;
   }
@@ -394,4 +536,10 @@ double Mandelbrot::getYMax() const {
 
 int Mandelbrot::getMaxIterations() const {
   return m_maxIterations;
+}
+
+Mandelbrot::~Mandelbrot() {
+  m_alive = false;
+  m_cv.notify_one();
+  m_thread.join();
 }

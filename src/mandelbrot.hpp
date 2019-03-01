@@ -2,6 +2,10 @@
 
 #include <string>
 #include <map>
+#include <thread>
+#include <condition_variable>
+#include <atomic>
+#include <future>
 #include "gl.hpp"
 
 extern const std::map<std::string, std::string> PRESETS;
@@ -12,7 +16,7 @@ class Mandelbrot {
 public:
   Mandelbrot(int W, int H);
 
-  void init();
+  void init(const std::function<void()>& fnCreateGlContext);
   void resize(int w, int y);
   void draw();
   void zoom(double x, double y, double mag);
@@ -31,25 +35,72 @@ public:
 
   double computeMagnification() const;
 
-  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
+  std::future<uint8_t*> renderToMainMemoryBuffer(int w, int h, size_t& bytes);
+
+  ~Mandelbrot();
 
 private:
-  void loadShaders(const std::string& fragShaderPath,
-                   const std::string& vertShaderPath,
-                   const std::string& computeColourImpl);
-  GLuint loadShader(const std::string& path, GLuint type,
-                    const std::string& computeColourImpl = "");
-  void initUniforms();
-  void updateUniforms();
+  std::atomic<bool> m_alive;
+  std::thread m_thread;
+  std::mutex m_cvMutex;
+  std::condition_variable m_cv;
+  std::string m_pendingFunctionCall;
+  std::atomic<bool> m_busy;
 
-  bool m_initialised = false;
-  int m_W;
-  int m_H;
-  int m_maxIterations;
-  double m_xmin;
-  double m_xmax;
-  double m_ymin;
-  double m_ymax;
+  void notifyThatFunctionIsPending(const std::string& name);
+  void awaitResult();
+
+  // All functions with a trailing underscore run on worker thread
+  //
+  void loop_();
+  void doDispatch_();
+
+  struct {
+    std::function<void()> fnCreateGlContext;
+  } m_initArgs;
+
+  void init_(const std::function<void()>& createGlContext);
+  void draw_();
+
+  struct {
+    std::string vertShaderPath;
+    std::string fragShaderPath;
+    std::string computeColourImpl;
+  } m_loadShadersArgs;
+  
+  void loadShaders_(const std::string& fragShaderPath,
+                    const std::string& vertShaderPath,
+                    const std::string& computeColourImpl);
+  GLuint loadShader_(const std::string& path, GLuint type,
+                     const std::string& computeColourImpl = "");
+  void initUniforms_();
+  void updateUniforms_();
+
+  struct {
+    int w;
+    int h;
+    size_t* bytes = nullptr;
+    uint8_t* result = nullptr;
+  } m_renderToMainMemoryBufferArgs;
+
+  uint8_t* renderToMainMemoryBuffer_(int w, int h, size_t& bytes);
+
+  struct {
+    int w;
+    int h;
+  } m_resizeArgs;
+
+  void resize_(int w, int h);
+
+  std::atomic<bool> m_initialised;
+  std::atomic<int> m_W;
+  std::atomic<int> m_H;
+  std::atomic<int> m_maxIterations;
+  std::atomic<double> m_xmin;
+  std::atomic<double> m_xmax;
+  std::atomic<double> m_ymin;
+  std::atomic<double> m_ymax;
+
   std::string m_activeComputeColourImpl;
 
   struct {
@@ -63,5 +114,5 @@ private:
   } m_uniforms;
 
   GLuint m_vertexBuffer;
-  GLuint m_program;
+  GLuint m_program = 0;
 };

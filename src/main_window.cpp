@@ -1,5 +1,7 @@
 #include <sstream>
 #include <iomanip>
+#include <thread>
+#include <chrono>
 #include <wx/gbsizer.h>
 #include <wx/richtext/richtextctrl.h>
 #include "main_window.hpp"
@@ -7,23 +9,28 @@
 #include "exception.hpp"
 #include "wx_helpers.hpp"
 
+using namespace std::chrono_literals;
+
 static const int WINDOW_W = 1000;
 static const int WINDOW_H = 600;
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
 
-static std::string formatDouble(double d) {
-  std::stringstream ss;
-  ss << std::scientific << d;
-  return ss.str();
-}
+wxDEFINE_EVENT(EXPORT_COMPLETE, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
 wxEND_EVENT_TABLE()
 
+static std::string formatDouble(double d) {
+  std::stringstream ss;
+  ss << std::scientific << d;
+  return ss.str();
+}     
+
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
-  : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size) {
+  : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size),
+    m_quitting(false) {
 
   m_vbox = new wxBoxSizer(wxVERTICAL);
   SetSizer(m_vbox);
@@ -44,6 +51,8 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
+
+  Bind(EXPORT_COMPLETE, &MainWindow::onExportComplete, this);
 }
 
 void MainWindow::constructLeftPanel() {
@@ -257,7 +266,7 @@ wxStaticBox* MainWindow::constructDataPanel(wxWindow* parent) {
 wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
-  auto grid = new wxFlexGridSizer(2);
+  auto grid = new wxGridBagSizer(0, 0);
   box->SetSizer(grid);
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
@@ -271,15 +280,22 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   m_txtExportHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   m_txtExportHeight->Bind(wxEVT_TEXT, &MainWindow::onExportHeightChange, this);
 
-  auto btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
-  btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
+  m_btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
+  m_btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
 
-  grid->Add(lblWidth, 0, wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtExportWidth, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblHeight, 0, wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtExportHeight, 0, wxEXPAND | wxRIGHT, 10);
-  grid->AddSpacer(1);
-  grid->Add(btnExport, 0, wxEXPAND | wxRIGHT, 10);
+  m_exportBusyIndicator = new wxActivityIndicator(box, wxID_ANY);
+
+  grid->Add(lblWidth, wxGBPosition(0, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtExportWidth, wxGBPosition(0, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblHeight, wxGBPosition(1, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT,
+            10);
+  grid->Add(m_txtExportHeight, wxGBPosition(1, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
+            10);
+  grid->Add(m_exportBusyIndicator, wxGBPosition(3, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
 
@@ -422,13 +438,46 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   long h = 0;
   m_txtExportHeight->GetValue().ToLong(&h);
 
+  wxString filePath = fileDialog.GetPath();
+
+  m_canvas->Disable();
+
+  m_btnExport->Disable();
+  m_exportBusyIndicator->Start();
+
   size_t nBytes = 0;
-  uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+
+  m_exportData.w = w;
+  m_exportData.h = h;
+  m_exportData.filePath = filePath;
+  m_exportData.data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+
+  auto fnPoll = [this]() {
+    while (!m_quitting &&
+            m_exportData.data.wait_for(0.25s) != std::future_status::ready) {}
+    QueueEvent(new wxCommandEvent(EXPORT_COMPLETE));
+  };
+
+  m_exportStatusPollerThread = std::thread(fnPoll);
+}
+
+void MainWindow::onExportComplete(wxCommandEvent&) {
+  m_exportStatusPollerThread.join();
+
+  int w = m_exportData.w;
+  int h = m_exportData.h;
+  uint8_t* data = m_exportData.data.get();
+  const wxString& filePath = m_exportData.filePath;
 
   wxImage image(w, h, data);
   image = image.Mirror(false);
 
-  image.SaveFile(fileDialog.GetPath(), wxBITMAP_TYPE_BMP);
+  image.SaveFile(filePath, wxBITMAP_TYPE_BMP);
+
+  m_exportBusyIndicator->Stop();
+  m_btnExport->Enable();
+
+  m_canvas->Enable();
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
@@ -503,6 +552,13 @@ void MainWindow::onAbout(wxCommandEvent&) {
 
   wxMessageBox(wxGetTranslation(ss.str()), versionString(),
                wxOK | wxICON_INFORMATION);
+}
+
+MainWindow::~MainWindow() {
+  m_quitting = true;
+  if (m_exportStatusPollerThread.joinable()) {
+    m_exportStatusPollerThread.join();
+  }
 }
 
 class Application : public wxApp {

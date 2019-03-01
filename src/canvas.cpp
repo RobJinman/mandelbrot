@@ -26,10 +26,6 @@ Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
   m_targetFps = DEFAULT_TARGET_FPS;
   m_zoomPerFrame = DEFAULT_ZOOM_PER_FRAME;
 
-  wxGLContextAttrs attrs;
-  attrs.MajorVersion(3).MinorVersion(3).ForwardCompatible();
-  m_context.reset(new wxGLContext(this, nullptr, &attrs));
-
   m_timer = new wxTimer(this);
 
   SetBackgroundStyle(wxBG_STYLE_CUSTOM);
@@ -107,7 +103,8 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   auto sz = GetSize();
 
   size_t nBytes = 0;
-  uint8_t* data = m_mandelbrot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
+  auto fut = m_mandelbrot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
+  uint8_t* data = fut.get();
 
   wxImage image(sz.x, sz.y, data);
   image = image.Mirror(false);
@@ -176,15 +173,13 @@ void Canvas::initGl() {
     return;
   }
 
-  wxGLCanvas::SetCurrent(*m_context);
+  m_mandelbrot.init([this]() {
+    wxGLContextAttrs attrs;
+    attrs.MajorVersion(3).MinorVersion(3).ForwardCompatible();
+    m_context.reset(new wxGLContext(this, nullptr, &attrs));
 
-  glewExperimental = GL_TRUE;
-  GLenum result = glewInit();
-  if (result != GLEW_OK) {
-    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
-  }
-
-  m_mandelbrot.init();
+    SetCurrent(*m_context);
+  });
 
   resize();
 
@@ -240,7 +235,6 @@ void Canvas::render(wxDC&) {
     return;
   }
 
-  wxGLCanvas::SetCurrent(*m_context);
   m_mandelbrot.draw();
 
   measureFrameRate();
