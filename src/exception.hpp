@@ -12,14 +12,31 @@
     throw std::runtime_error(ss.str()); \
   }
 
+#define GL_SUPPORT_EXCEPTION(msg) \
+  { \
+    std::stringstream ss; \
+    ss << msg << " (FILE: " << __FILE__ << ", LINE: " << __LINE__ << ")" \
+       << std::endl; \
+    throw MissingGlSupportException(ss.str()); \
+  }
+
+#define GL_EXCEPTION(msg, code) \
+  { \
+    std::stringstream ss; \
+    ss << msg << " (code=0x" << std::hex << code << std::dec << ") (FILE: " \
+       << __FILE__ << ", LINE: " << __LINE__ << ")" << std::endl; \
+    throw OpenGlException(ss.str(), code); \
+  }
+
 #define GL_CHECK(x) \
   x; \
   { \
     GLenum glError = glGetError(); \
     if (glError != GL_NO_ERROR) { \
       std::stringstream ss; \
-      ss << "OpenGL error, code=0x" << glError << " (FILE: " << __FILE__ \
-        << ", LINE: " << __LINE__ << ")" << std::endl; \
+      ss << "OpenGL error, code=0x" << std::hex << glError << std::dec \
+        << " (FILE: " << __FILE__ << ", LINE: " << __LINE__ << ")" \
+        << std::endl; \
       throw OpenGlException(ss.str(), glError); \
     } \
   }

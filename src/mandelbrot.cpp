@@ -93,8 +93,9 @@ void Mandelbrot::init() {
     EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
   }
 
-  if (!GLEW_VERSION_3_3) {
-    throw MissingGlSupportException("OpenGL 3.3 not supported");
+  if (!glewIsSupported(GL_VERSION_STRING)) {
+    GL_SUPPORT_EXCEPTION("OpenGL " << GL_VERSION_MAJOR << "."
+                         << GL_VERSION_MINOR << " not supported");
   }
 
   GL_CHECK(glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE));
@@ -171,7 +172,7 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
 
   auto status = GL_CHECK(glCheckFramebufferStatus(GL_FRAMEBUFFER));
   if (status != GL_FRAMEBUFFER_COMPLETE) {
-    EXCEPTION("Error creating render target");
+    GL_EXCEPTION("Error creating render target", status);
   }
 
   draw();
@@ -382,6 +383,14 @@ void Mandelbrot::draw() {
   GL_CHECK(glDisableVertexAttribArray(0));
 
   GL_CHECK(glFlush());
+}
+
+void Mandelbrot::drawSelectionRect(double x0, double y0, double x1, double y1) {
+  if (!m_initialised) {
+    return;
+  }
+
+  // TODO
 }
 
 double Mandelbrot::computeMagnification() const {

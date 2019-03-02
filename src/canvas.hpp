@@ -13,8 +13,8 @@ class Mandelbrot;
 
 class Canvas : public wxGLCanvas {
 public:
-  Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
-         std::function<void()> onRender);
+  Canvas(wxWindow* parent, const wxGLAttributes& glAttrs,
+         Mandelbrot& mandelbrot, std::function<void()> onRender);
 
   void refresh();
   void setTargetFps(double fps);
@@ -22,7 +22,7 @@ public:
 
 private:
   void initGl();
-  void render(wxDC& dc);
+  void render();
   void measureFrameRate();
   void centreCursor();
   wxPoint getCursorPos() const;
@@ -53,9 +53,7 @@ private:
   double m_zoomPerFrame;
   std::unique_ptr<wxBitmap> m_background;
   bool m_mouseDown = false;
-  wxPoint m_mouseOrigin;
-  wxPoint m_mouseDest;
-  bool m_doZoom = false;
+  wxRect m_selectionRect;
 
   wxDECLARE_EVENT_TABLE();
 };

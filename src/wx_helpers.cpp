@@ -16,3 +16,13 @@ wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
 
   return ctrl;
 }
+
+std::ostream& operator<<(std::ostream& os, const wxPoint& p) {
+  os << "(" << p.x << ", " << p.y << ")";
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const wxSize& sz) {
+  os << "(" << sz.x << ", " << sz.y << ")";
+  return os;
+}

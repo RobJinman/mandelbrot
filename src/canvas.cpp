@@ -1,6 +1,7 @@
 #include "canvas.hpp"
 #include "exception.hpp"
 #include "mandelbrot.hpp"
+#include "wx_helpers.hpp"
 
 namespace chrono = std::chrono;
 
@@ -16,18 +17,35 @@ wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_TIMER(wxID_ANY, Canvas::onTick)
 wxEND_EVENT_TABLE()
 
-Canvas::Canvas(wxWindow* parent, const int* args, Mandelbrot& mandelbrot,
-               std::function<void()> onRender)
-  : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition,
-               wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),
+static bool selectionSizeAboveThreshold(const wxSize& sz) {
+  return sz.x * sz.x + sz.y * sz.y >= 64;
+}
+
+Canvas::Canvas(wxWindow* parent, const wxGLAttributes& glAttrs,
+               Mandelbrot& mandelbrot, std::function<void()> onRender)
+  : wxGLCanvas(parent, glAttrs, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+               wxFULL_REPAINT_ON_RESIZE),
     m_mandelbrot(mandelbrot),
     m_onRender(onRender) {
 
   m_targetFps = DEFAULT_TARGET_FPS;
   m_zoomPerFrame = DEFAULT_ZOOM_PER_FRAME;
 
+#ifdef __APPLE__
   wxGLContextAttrs attrs;
-  attrs.MajorVersion(3).MinorVersion(3).ForwardCompatible();
+  attrs.PlatformDefaults()
+       .CoreProfile()
+       .MajorVersion(GL_VERSION_MAJOR)
+       .MinorVersion(GL_VERSION_MINOR)
+       .ForwardCompatible()
+       .EndList();
+#else
+  wxGLContextAttrs attrs;
+  attrs.MajorVersion(GL_VERSION_MAJOR)
+       .MinorVersion(GL_VERSION_MINOR)
+       .ForwardCompatible()
+       .EndList();
+#endif
   m_context.reset(new wxGLContext(this, nullptr, &attrs));
 
   m_timer = new wxTimer(this);
@@ -53,8 +71,7 @@ void Canvas::onTick(wxTimerEvent&) {
     m_mandelbrot.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
-  wxClientDC dc(this);
-  render(dc);
+  render();
 }
 
 void Canvas::onResize(wxSizeEvent& e) {
@@ -100,9 +117,10 @@ void Canvas::deactivateFlyThroughMode() {
 
 void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   SetFocus();
+  wxGLCanvas::SetCurrent(*m_context);
 
   m_mouseDown = true;
-  m_mouseOrigin = e.GetPosition();
+  m_selectionRect = wxRect(e.GetPosition(), wxSize(0, 0));
 
   auto sz = GetSize();
 
@@ -118,36 +136,30 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
 void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
   m_mouseDown = false;
 
-  if (m_doZoom) {
-    m_mandelbrot.zoom(m_mouseOrigin.x, m_mouseOrigin.y, m_mouseDest.x,
-                      m_mouseDest.y);
+  if (selectionSizeAboveThreshold(m_selectionRect.GetSize())) {
+    int x0 = m_selectionRect.x;
+    int y0 = m_selectionRect.y;
+    int x1 = x0 + m_selectionRect.width;
+    int y1 = y0 + m_selectionRect.height;
+
+    m_mandelbrot.zoom(x0, y0, x1, y1);
     refresh();
   }
-
-  m_doZoom = false;
 }
 
 void Canvas::onMouseMove(wxMouseEvent& e) {
   if (m_mouseDown) {
-    wxPoint p = e.GetPosition();
-    wxSize sz(p.x - m_mouseOrigin.x, p.y - m_mouseOrigin.y);
+    wxPoint p = wxGetMousePosition() - GetScreenPosition();
+    wxPoint sz_p = p - m_selectionRect.GetTopLeft();
+    wxSize sz(sz_p.x, sz_p.y);
 
     wxSize winSz = GetClientSize();
     float aspect = static_cast<float>(winSz.x) / static_cast<float>(winSz.y);
     sz.y = sz.x / aspect;
 
-    if (sz.x * sz.x + sz.y * sz.y >= 64) {
-      wxClientDC dc(this);
-      if (m_background) {
-        dc.DrawBitmap(*m_background, 0, 0);
-      }
-      dc.SetBrush(*wxTRANSPARENT_BRUSH);
-      dc.SetPen(wxPen(wxColor(255, 0, 0), 2));
-      dc.DrawRectangle(m_mouseOrigin, sz);
+    m_selectionRect.SetSize(sz);
 
-      m_mouseDest = m_mouseOrigin + sz;
-      m_doZoom = true;
-    }
+    refresh();
   }
 }
 
@@ -189,7 +201,7 @@ void Canvas::measureFrameRate() {
   if (m_frame % 10 == 0) {
     chrono::high_resolution_clock::time_point t_ =
       chrono::high_resolution_clock::now();
-    chrono::duration<double> span = 
+    chrono::duration<double> span =
       chrono::duration_cast<chrono::duration<double>>(t_ - m_t);
     m_measuredFrameRate = 10.0 / span.count();
     m_t = t_;
@@ -202,8 +214,7 @@ void Canvas::onPaint(wxPaintEvent&) {
     initGl();
   }
 
-  wxPaintDC dc(this);
-  render(dc);
+  render();
 }
 
 void Canvas::refresh() {
@@ -229,14 +240,24 @@ wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
   return p_;
 }
 
-void Canvas::render(wxDC&) {
+void Canvas::render() {
   if (!IsShownOnScreen()) {
     return;
   }
 
   wxGLCanvas::SetCurrent(*m_context);
 
-  m_mandelbrot.draw();
+  if (m_mouseDown) {
+    int x0 = m_selectionRect.x;
+    int y0 = m_selectionRect.y;
+    int x1 = x0 + m_selectionRect.width;
+    int y1 = y0 + m_selectionRect.height;
+
+    m_mandelbrot.drawSelectionRect(x0, y0, x1, y1);
+  }
+  else {
+    m_mandelbrot.draw();
+  }
 
   measureFrameRate();
 

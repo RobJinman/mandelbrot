@@ -52,8 +52,10 @@ void MainWindow::constructLeftPanel() {
   m_leftPanel->SetSizer(vbox);
   m_leftPanel->SetCanFocus(true);
 
-  int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
-  m_canvas = new Canvas(m_leftPanel, args, *m_mandelbrot,
+  wxGLAttributes glAttrs;
+  glAttrs.PlatformDefaults().Defaults().EndList();
+
+  m_canvas = new Canvas(m_leftPanel, glAttrs, *m_mandelbrot,
                         [this]() { onRender(); });
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
@@ -346,7 +348,7 @@ void MainWindow::constructRightPanel() {
 void MainWindow::constructMenu() {
   wxMenu* mnuFile = new wxMenu;
   mnuFile->Append(wxID_EXIT);
-  
+
   wxMenu* mnuHelp = new wxMenu;
   mnuHelp->Append(wxID_ABOUT);
 
@@ -380,10 +382,12 @@ void MainWindow::adjustExportSize(bool adjustWidth) {
 
 void MainWindow::onCanvasGainFocus(wxFocusEvent&) {
   m_leftPanel->SetBackgroundColour(*wxBLUE);
+  Refresh();
 }
 
 void MainWindow::onCanvasLoseFocus(wxFocusEvent&) {
   m_leftPanel->SetBackgroundColour(*wxLIGHT_GREY);
+  Refresh();
 }
 
 void MainWindow::onCanvasResize(wxSizeEvent& e) {
