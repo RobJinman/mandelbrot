@@ -56,7 +56,7 @@ if (PLATFORM_LINUX)
                        libwx_gtk2u_core-3.1
                        libwx_baseu-3.1)
 elseif (PLATFORM_WINDOWS)
-  set(VENDOR_LIB_NAMES libGLEW32
+  set(VENDOR_LIB_NAMES libGLEW
                        wxmsw31u_gl
                        wxmsw31u_core
                        wxpng
@@ -66,6 +66,18 @@ elseif (PLATFORM_WINDOWS)
                        wxregexu
                        wxexpat
                        wxbase31u)
+elseif (PLATFORM_OSX)
+  set(VENDOR_LIB_NAMES libGLEW
+                       libwx_osx_cocoau_richtext-3.1
+                       libwx_osx_cocoau_html-3.1
+                       libwx_baseu_xml-3.1
+                       libwx_osx_cocoau_gl-3.1
+                       libwx_osx_cocoau_core-3.1
+                       libwxpng-3.1
+                       libwxtiff-3.1
+                       libwxscintilla-3.1
+                       libwxregexu-3.1
+                       libwx_baseu-3.1)
 endif()
 
 find_vendor_libs(VENDOR_STATIC_LIBS "${VENDOR_LIB_NAMES}")
@@ -105,11 +117,21 @@ elseif (PLATFORM_WINDOWS)
     "${VENDOR_DIR}/lib/vc_x64_lib/mswu"
   )
 elseif (PLATFORM_OSX)
-  set(PLATFORM_LIBS)
-  set(PLATFORM_COMPILE_FLAGS_COMMON)
+  set(PLATFORM_LIBS "-framework AudioToolbox"
+                    "-framework WebKit"
+                    -lexpat -lz
+                    "-framework Security"
+                    "-framework Carbon"
+                    "-framework Cocoa"
+                    "-framework CoreFoundation"
+                    "-framework IOKit" -pthread)
+  set(PLATFORM_COMPILE_FLAGS_COMMON -DWXUSINGDLL
+                                    -D__WXOSX_COCOA__
+                                    -D__WXMAC__
+                                    -D__WXOSX__)
   set(PLATFORM_COMPILE_FLAGS_RELEASE)
   set(PLATFORM_COMPILE_FLAGS_DEBUG)
-  set(PLATFORM_LINK_FLAGS)
+  set(PLATFORM_LINK_FLAGS "-Wl,-F/System/Library/Frameworks")
 
   include_directories(
     "${VENDOR_DIR}/include/wx-3.1"
@@ -136,6 +158,6 @@ target_compile_options(
           "$<$<CONFIG:DEBUG>:${PLATFORM_COMPILE_FLAGS_DEBUG}>"
 )
 target_link_libraries(mandelbrot ${ALL_LIBS})
-target_link_options(mandelbrot PRIVATE ${PLATFORM_LINK_FLAGS})
+set_target_properties(mandelbrot PROPERTIES LINK_FLAGS "${PLATFORM_LINK_FLAGS}")
 
 file(COPY "${DATA_DIR}" DESTINATION "${PROJECT_BINARY_DIR}")
