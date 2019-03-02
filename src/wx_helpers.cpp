@@ -1,4 +1,6 @@
+#include <sstream>
 #include "wx_helpers.hpp"
+#include "config.hpp"
 
 wxStaticText* constructLabel(wxWindow* parent, const wxString& text) {
   return new wxStaticText(parent, wxID_ANY, text);
@@ -15,6 +17,13 @@ wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
   }
 
   return ctrl;
+}
+
+std::string versionString() {
+  std::stringstream ss;
+  ss << "Mandelbrot " << Mandelbrot_VERSION_MAJOR << "."
+     << Mandelbrot_VERSION_MINOR;
+  return ss.str();
 }
 
 std::ostream& operator<<(std::ostream& os, const wxPoint& p) {

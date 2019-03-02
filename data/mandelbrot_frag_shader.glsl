@@ -3,15 +3,15 @@
 precision highp float;
 precision highp int;
 
-uniform float W;
-uniform float H;
-uniform int maxIterations;
-uniform float xmin;
-uniform float xmax;
-uniform float ymin;
-uniform float ymax;
+uniform float u_w;
+uniform float u_h;
+uniform int u_maxIterations;
+uniform float u_xmin;
+uniform float u_xmax;
+uniform float u_ymin;
+uniform float u_ymax;
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec3 out_colour;
 
 int testPoint(vec2 p) {
   float x0 = p.x;
@@ -20,7 +20,7 @@ int testPoint(vec2 p) {
   float y = y0;
 
   int i = 0;
-  for (; i < maxIterations; ++i) {
+  for (; i < u_maxIterations; ++i) {
     float nextX = x * x - y * y + x0;
     float nextY = 2.0 * x * y + y0;
 
@@ -36,10 +36,10 @@ int testPoint(vec2 p) {
 }
 
 vec2 screenToWorld(vec2 p) {
-  float w = xmax - xmin;
-  float h = ymax - ymin;
+  float w = u_xmax - u_xmin;
+  float h = u_ymax - u_ymin;
 
-  return vec2(xmin + w * p.x / W, ymin + h * p.y / H);
+  return vec2(u_xmin + w * p.x / u_w, u_ymin + h * p.y / u_h);
 }
 
 vec3 hueToRgb(float hue) {
@@ -72,5 +72,5 @@ COMPUTE_COLOUR_IMPL
 void main() {
   vec2 p = screenToWorld(gl_FragCoord.xy);
   int i = testPoint(p);
-  color = vec3(computeColour(i, p.x, p.y));
+  out_colour = vec3(computeColour(i, p.x, p.y));
 }

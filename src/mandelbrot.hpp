@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 #include "gl.hpp"
 
 extern const std::map<std::string, std::string> PRESETS;
@@ -12,10 +12,11 @@ class Mandelbrot {
 public:
   Mandelbrot(int W, int H);
 
-  void init();
+  void initialise();
+
   void resize(int w, int y);
   void draw();
-  void drawSelectionRect(double x0, double y0, double x1, double y1);
+
   void zoom(double x, double y, double mag);
   void zoom(double x0, double y0, double x1, double y1);
   void reset();
@@ -35,34 +36,38 @@ public:
   uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
 
 private:
-  void loadShaders(const std::string& fragShaderPath,
-                   const std::string& vertShaderPath,
-                   const std::string& computeColourImpl);
-  GLuint loadShader(const std::string& path, GLuint type,
-                    const std::string& computeColourImpl = "");
-  void initUniforms();
-  void updateUniforms();
-
   bool m_initialised = false;
-  int m_W;
-  int m_H;
+
+  struct {
+    GLuint id;
+
+    // Uniforms
+    struct {
+      GLuint w;
+      GLuint h;
+      GLuint maxIterations;
+      GLuint xmin;
+      GLuint xmax;
+      GLuint ymin;
+      GLuint ymax;
+    } u;
+
+    GLuint vertexBufferId;
+  } m_program;
+
+  int m_w;
+  int m_h;
   int m_maxIterations;
   double m_xmin;
   double m_xmax;
   double m_ymin;
   double m_ymax;
+
+  std::string m_vertShaderPath;
+  std::string m_fragShaderPath;
   std::string m_activeComputeColourImpl;
 
-  struct {
-    GLuint uW;
-    GLuint uH;
-    GLuint uMaxIterations;
-    GLuint uXmin;
-    GLuint uXmax;
-    GLuint uYmin;
-    GLuint uYmax;
-  } m_uniforms;
-
-  GLuint m_vertexBuffer;
-  GLuint m_program;
+  void compileProgram(const std::string& computeColourImpl);
+  void initUniforms();
+  void updateUniforms();
 };

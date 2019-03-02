@@ -7,8 +7,6 @@
 #include "exception.hpp"
 #include "wx_helpers.hpp"
 
-static const int WINDOW_W = 1000;
-static const int WINDOW_H = 600;
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
 
 static std::string formatDouble(double d) {
@@ -25,12 +23,13 @@ wxEND_EVENT_TABLE()
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
   : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size) {
 
+  m_renderer.reset(new Renderer(400, 400));
+
   m_vbox = new wxBoxSizer(wxVERTICAL);
   SetSizer(m_vbox);
 
   SetAutoLayout(true);
 
-  m_mandelbrot.reset(new Mandelbrot(400, 400));
   m_splitter = new wxSplitterWindow(this);
   m_splitter->SetMinimumPaneSize(300);
 
@@ -55,7 +54,7 @@ void MainWindow::constructLeftPanel() {
   wxGLAttributes glAttrs;
   glAttrs.PlatformDefaults().Defaults().EndList();
 
-  m_canvas = new Canvas(m_leftPanel, glAttrs, *m_mandelbrot,
+  m_canvas = new Canvas(m_leftPanel, glAttrs, *m_renderer,
                         [this]() { onRender(); });
   m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
                  this);
@@ -217,26 +216,20 @@ wxStaticBox* MainWindow::constructDataPanel(wxWindow* parent) {
   auto grid = new wxFlexGridSizer(2);
   box->SetSizer(grid);
 
-  double magnification = m_mandelbrot->computeMagnification();
-
   auto lblMagLevel = constructLabel(box, wxGetTranslation("Magnification"));
-  m_dataFields.txtMagLevel = constructLabel(box, formatDouble(magnification));
+  m_dataFields.txtMagLevel = constructLabel(box, "");
 
   auto lblXMin = constructLabel(box, "x-min");
-  m_dataFields.txtXMin = constructLabel(box,
-                                        formatDouble(m_mandelbrot->getXMin()));
+  m_dataFields.txtXMin = constructLabel(box, "");
 
   auto lblXMax = constructLabel(box, "x-max");
-  m_dataFields.txtXMax = constructLabel(box,
-                                        formatDouble(m_mandelbrot->getXMax()));
+  m_dataFields.txtXMax = constructLabel(box, "");
 
   auto lblYMin = constructLabel(box, "y-min");
-  m_dataFields.txtYMin = constructLabel(box,
-                                        formatDouble(m_mandelbrot->getYMin()));
+  m_dataFields.txtYMin = constructLabel(box, "");
 
   auto lblYMax = constructLabel(box, "y-max");
-  m_dataFields.txtYMax = constructLabel(box,
-                                        formatDouble(m_mandelbrot->getYMax()));
+  m_dataFields.txtYMax = constructLabel(box, "");
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
@@ -405,12 +398,12 @@ void MainWindow::onExportWidthChange(wxCommandEvent&) {
 }
 
 void MainWindow::onRender() {
-  auto magLevel = formatDouble(m_mandelbrot->computeMagnification());
+  auto magLevel = formatDouble(m_renderer->brot.computeMagnification());
   m_dataFields.txtMagLevel->SetLabel(magLevel);
-  m_dataFields.txtXMin->SetLabel(formatDouble(m_mandelbrot->getXMin()));
-  m_dataFields.txtXMax->SetLabel(formatDouble(m_mandelbrot->getXMax()));
-  m_dataFields.txtYMin->SetLabel(formatDouble(m_mandelbrot->getYMin()));
-  m_dataFields.txtYMax->SetLabel(formatDouble(m_mandelbrot->getYMax()));
+  m_dataFields.txtXMin->SetLabel(formatDouble(m_renderer->brot.getXMin()));
+  m_dataFields.txtXMax->SetLabel(formatDouble(m_renderer->brot.getXMax()));
+  m_dataFields.txtYMin->SetLabel(formatDouble(m_renderer->brot.getYMin()));
+  m_dataFields.txtYMax->SetLabel(formatDouble(m_renderer->brot.getYMax()));
 }
 
 void MainWindow::onExportClick(wxCommandEvent&) {
@@ -427,7 +420,7 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   m_txtExportHeight->GetValue().ToLong(&h);
 
   size_t nBytes = 0;
-  uint8_t* data = m_mandelbrot->renderToMainMemoryBuffer(w, h, nBytes);
+  uint8_t* data = m_renderer->brot.renderToMainMemoryBuffer(w, h, nBytes);
 
   wxImage image(w, h, data);
   image = image.Mirror(false);
@@ -440,7 +433,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 
   long maxI = 0;
   m_txtMaxIterations->GetValue().ToLong(&maxI);
-  m_mandelbrot->setMaxIterations(maxI);
+  m_renderer->brot.setMaxIterations(maxI);
   needRefresh = true;
 
   double targetFps = 0;
@@ -459,7 +452,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 void MainWindow::applyColourScheme() {
   try {
     std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
-    m_mandelbrot->setColourSchemeImpl(code);
+    m_renderer->brot.setColourSchemeImpl(code);
     m_canvas->refresh();
     m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
   }
@@ -491,13 +484,6 @@ void MainWindow::onExit(wxCommandEvent&) {
   Close(true);
 }
 
-static std::string versionString() {
-  std::stringstream ss;
-  ss << "Mandelbrot " << Mandelbrot_VERSION_MAJOR << "."
-     << Mandelbrot_VERSION_MINOR;
-  return ss.str();
-}
-
 void MainWindow::onAbout(wxCommandEvent&) {
   std::stringstream ss;
   ss << "The Mandelbrot fractal rendered on the GPU inside a fragment "
@@ -508,32 +494,3 @@ void MainWindow::onAbout(wxCommandEvent&) {
   wxMessageBox(wxGetTranslation(ss.str()), versionString(),
                wxOK | wxICON_INFORMATION);
 }
-
-class Application : public wxApp {
-public:
-  virtual bool OnInit() override {
-    MainWindow* frame = new MainWindow(versionString(),
-                                       wxSize(WINDOW_W, WINDOW_H));
-    frame->Show();
-    return true;
-  }
-
-  virtual void HandleEvent(wxEvtHandler* handler, wxEventFunction func,
-                           wxEvent& event) const override {
-    try {
-      wxApp::HandleEvent(handler, func, event);
-    }
-    catch (const ShaderException& e) {
-      std::cerr << "A fatal exception occurred: " << std::endl;
-      std::cerr << e.what() << ": " << e.errorOutput() << std::endl;
-      exit(1);
-    }
-    catch (const std::runtime_error& e) {
-      std::cerr << "A fatal exception occurred: " << std::endl;
-      std::cerr << e.what() << std::endl;
-      exit(1);
-    }
-  }
-};
-
-wxIMPLEMENT_APP(Application);

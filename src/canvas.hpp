@@ -9,19 +9,18 @@
 const double DEFAULT_TARGET_FPS = 10.0;
 const double DEFAULT_ZOOM_PER_FRAME = 1.025;
 
-class Mandelbrot;
+class Renderer;
 
 class Canvas : public wxGLCanvas {
 public:
-  Canvas(wxWindow* parent, const wxGLAttributes& glAttrs,
-         Mandelbrot& mandelbrot, std::function<void()> onRender);
+  Canvas(wxWindow* parent, const wxGLAttributes& glAttrs, Renderer& renderer,
+         std::function<void()> onRender);
 
   void refresh();
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
 
 private:
-  void initGl();
   void render();
   void measureFrameRate();
   void centreCursor();
@@ -39,9 +38,8 @@ private:
   void onPaint(wxPaintEvent& e);
   void onTick(wxTimerEvent& e);
 
-  bool m_initialised = false;
-  wxTimer* m_timer;
-  Mandelbrot& m_mandelbrot;
+  Renderer& m_renderer;
+  wxTimer* m_timer = nullptr;
   std::function<void()> m_onRender;
   std::unique_ptr<wxGLContext> m_context;
   long long m_frame = 0;

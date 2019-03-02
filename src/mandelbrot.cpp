@@ -1,10 +1,16 @@
-#include <string>
-#include <fstream>
-#include <vector>
-#include <cmath>
-#include <map>
 #include "mandelbrot.hpp"
 #include "exception.hpp"
+#include "render_utils.hpp"
+
+#define INIT_GUARD \
+  if (!m_initialised) { \
+    return; \
+  }
+
+#define INIT_EXCEPT \
+  if (!m_initialised) { \
+    throw std::runtime_error("Mandelbrot not initialised"); \
+  }
 
 using std::string;
 using std::vector;
@@ -13,31 +19,31 @@ const std::map<string, string> PRESETS = {
   {
     "monochrome",
 
-    "float c = float(i) / float(maxIterations);\n"
+    "float c = float(i) / float(u_maxIterations);\n"
     "return vec3(c, c, c);\n"
   },
   {
     "coloured",
 
-    "float c = float(i) / float(maxIterations);\n"
+    "float c = float(i) / float(u_maxIterations);\n"
     "return (1.0 - c) * hueToRgb(c);\n"
   },
   {
     "spacey",
 
-    "float c = float(i) / float(maxIterations);\n"
+    "float c = float(i) / float(u_maxIterations);\n"
     "return 0.7 * c * c * hueToRgb(c * 0.5 + 0.65);\n"
   },
   {
     "jazzy",
 
-    "float c = float(i) / float(maxIterations);\n"
+    "float c = float(i) / float(u_maxIterations);\n"
     "return (1.0 - c) * hueToRgb(c * 10.0);\n"
   },
   {
     "rainbow",
 
-    "float c = float(i) / float(maxIterations);\n"
+    "float c = float(i) / float(u_maxIterations);\n"
     "float r = sqrt(x * x + y * y) / 2.0;\n"
     "return (1.0 - c) * hueToRgb(c + r);\n"
   }
@@ -50,68 +56,14 @@ static const double INITIAL_XMAX = 1.5;
 static const double INITIAL_YMIN = -2.0;
 static const double INITIAL_YMAX = 2.0;
 
-Mandelbrot::Mandelbrot(int W, int H) {
-  m_W = W;
-  m_H = H;
-  reset();
+Mandelbrot::Mandelbrot(int w, int h) {
+  m_w = w;
+  m_h = h;
+  m_vertShaderPath = "data/mandelbrot_vert_shader.glsl";
+  m_fragShaderPath = "data/mandelbrot_frag_shader.glsl";
 }
 
-void Mandelbrot::reset() {
-  m_maxIterations = DEFAULT_MAX_ITERATIONS;
-  m_xmin = INITIAL_XMIN;
-  m_xmax = INITIAL_XMAX;
-  m_ymin = INITIAL_YMIN;
-  m_ymax = INITIAL_YMAX;
-
-  if (m_initialised) {
-    updateUniforms();
-  }
-}
-
-void Mandelbrot::resize(int w, int h) {
-  if (!m_initialised) {
-    return;
-  }
-
-  double yScale = static_cast<double>(h) / static_cast<double>(m_H);
-  double expectedW = m_W * yScale;
-  double xScale = w / expectedW;
-  double xRange = m_xmax - m_xmin;
-  m_xmax = m_xmin + xRange * xScale;
-
-  m_W = w;
-  m_H = h;
-  GL_CHECK(glViewport(0, 0, w, h));
-
-  updateUniforms();
-}
-
-void Mandelbrot::init() {
-  glewExperimental = GL_TRUE;
-  GLenum result = glewInit();
-  if (result != GLEW_OK) {
-    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
-  }
-
-  if (!glewIsSupported(GL_VERSION_STRING)) {
-    GL_SUPPORT_EXCEPTION("OpenGL " << GL_VERSION_MAJOR << "."
-                         << GL_VERSION_MINOR << " not supported");
-  }
-
-  GL_CHECK(glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE));
-  GL_CHECK(glPixelStorei(GL_PACK_LSB_FIRST, GL_FALSE));
-  GL_CHECK(glPixelStorei(GL_PACK_ROW_LENGTH, 0));
-  GL_CHECK(glPixelStorei(GL_PACK_SKIP_ROWS, 0));
-  GL_CHECK(glPixelStorei(GL_PACK_SKIP_PIXELS, 0));
-  GL_CHECK(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-
-  GL_CHECK(glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE));
-  GL_CHECK(glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE));
-  GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-  GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_ROWS, 0));
-  GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0));
-  GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-
+void Mandelbrot::initialise() {
   GLuint vertexArray;
   GL_CHECK(glGenVertexArrays(1, &vertexArray));
   GL_CHECK(glBindVertexArray(vertexArray));
@@ -125,28 +77,90 @@ void Mandelbrot::init() {
     -1.0f, 1.0f, 0.0f,  // D
   };
 
-  GL_CHECK(glGenBuffers(1, &m_vertexBuffer));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
+  GL_CHECK(glGenBuffers(1, &m_program.vertexBufferId));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vertexBufferId));
   GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData),
                         vertexBufferData, GL_STATIC_DRAW));
 
-  loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-              PRESETS.at(DEFAULT_COLOUR_SCHEME));
+  compileProgram(PRESETS.at(DEFAULT_COLOUR_SCHEME));
 
+  reset();
   initUniforms();
 
   m_initialised = true;
 }
 
-uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
-  if (!m_initialised) {
-    EXCEPTION("Mandelbrot not initialised");
+void Mandelbrot::compileProgram(const string& computeColourImpl) {
+  GLuint vertShader = loadShader(m_vertShaderPath, GL_VERTEX_SHADER);
+  GLuint fragShader =
+    loadShaderWithSubstitution(m_fragShaderPath, GL_FRAGMENT_SHADER,
+                               COMPUTE_COLOUR_IMPL_SEARCH_STRING,
+                               computeColourImpl);
+
+  m_program.id = GL_CHECK(glCreateProgram());
+  GL_CHECK(glAttachShader(m_program.id, vertShader));
+  GL_CHECK(glAttachShader(m_program.id, fragShader));
+  GL_CHECK(glLinkProgram(m_program.id));
+
+  GLint result = GL_FALSE;
+  int infoLogLen = 0;
+
+  GL_CHECK(glGetProgramiv(m_program.id, GL_LINK_STATUS, &result));
+  GL_CHECK(glGetProgramiv(m_program.id, GL_INFO_LOG_LENGTH, &infoLogLen));
+  if (infoLogLen > 0) {
+    vector<char> errMsg(infoLogLen + 1);
+    GL_CHECK(glGetProgramInfoLog(m_program.id, infoLogLen, NULL,
+                                 errMsg.data()));
+    throw ShaderException(errMsg.data());
   }
 
-  int prevW = m_W;
-  int prevH = m_H;
-  m_W = w;
-  m_H = h;
+  GL_CHECK(glDetachShader(m_program.id, vertShader));
+  GL_CHECK(glDetachShader(m_program.id, fragShader));
+
+  GL_CHECK(glDeleteShader(vertShader));
+  GL_CHECK(glDeleteShader(fragShader));
+
+  GL_CHECK(glUseProgram(m_program.id));
+
+  m_activeComputeColourImpl = computeColourImpl;
+}
+
+void Mandelbrot::reset() {
+  m_maxIterations = DEFAULT_MAX_ITERATIONS;
+  m_xmin = INITIAL_XMIN;
+  m_xmax = INITIAL_XMAX;
+  m_ymin = INITIAL_YMIN;
+  m_ymax = INITIAL_YMAX;
+
+  INIT_GUARD
+
+  updateUniforms();
+}
+
+void Mandelbrot::resize(int w, int h) {
+  double yScale = static_cast<double>(h) / static_cast<double>(m_h);
+  double expectedW = m_w * yScale;
+  double xScale = w / expectedW;
+  double xRange = m_xmax - m_xmin;
+  m_xmax = m_xmin + xRange * xScale;
+
+  m_w = w;
+  m_h = h;
+
+  INIT_GUARD
+
+  GL_CHECK(glViewport(0, 0, w, h));
+
+  updateUniforms();
+}
+
+uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  INIT_EXCEPT
+
+  int prevW = m_w;
+  int prevH = m_h;
+  m_w = w;
+  m_h = h;
   GL_CHECK(glViewport(0, 0, w, h));
   updateUniforms();
 
@@ -191,142 +205,65 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
 }
 
 void Mandelbrot::initUniforms() {
-  m_uniforms.uW = GL_CHECK(glGetUniformLocation(m_program, "W"));
-  m_uniforms.uH = GL_CHECK(glGetUniformLocation(m_program, "H"));
-  m_uniforms.uMaxIterations = GL_CHECK(glGetUniformLocation(m_program,
-                                                            "maxIterations"));
-  m_uniforms.uXmin = GL_CHECK(glGetUniformLocation(m_program, "xmin"));
-  m_uniforms.uXmax = GL_CHECK(glGetUniformLocation(m_program, "xmax"));
-  m_uniforms.uYmin = GL_CHECK(glGetUniformLocation(m_program, "ymin"));
-  m_uniforms.uYmax = GL_CHECK(glGetUniformLocation(m_program, "ymax"));
+  m_program.u.w = GL_CHECK(glGetUniformLocation(m_program.id, "u_w"));
+  m_program.u.h = GL_CHECK(glGetUniformLocation(m_program.id, "u_h"));
+  m_program.u.maxIterations = GL_CHECK(glGetUniformLocation(m_program.id,
+                                                            "u_maxIterations"));
+  m_program.u.xmin = GL_CHECK(glGetUniformLocation(m_program.id, "u_xmin"));
+  m_program.u.xmax = GL_CHECK(glGetUniformLocation(m_program.id, "u_xmax"));
+  m_program.u.ymin = GL_CHECK(glGetUniformLocation(m_program.id, "u_ymin"));
+  m_program.u.ymax = GL_CHECK(glGetUniformLocation(m_program.id, "u_ymax"));
 
   updateUniforms();
 }
 
-GLuint Mandelbrot::loadShader(const string& srcPath, GLuint type,
-                              const string& computeColourImpl) {
-  GLuint shaderId = GL_CHECK(glCreateShader(type));
-
-  std::ifstream fin(srcPath);
-  string shaderSrc{std::istreambuf_iterator<char>(fin),
-                   std::istreambuf_iterator<char>()};
-
-  if (type == GL_FRAGMENT_SHADER) {
-    auto idx = shaderSrc.find(COMPUTE_COLOUR_IMPL_SEARCH_STRING);
-    auto len = COMPUTE_COLOUR_IMPL_SEARCH_STRING.length();
-    shaderSrc.replace(idx, len, computeColourImpl);
-  }
-
-  GLint result = GL_FALSE;
-  int infoLogLen = 0;
-
-  const char* srcPtr = shaderSrc.c_str();
-  GL_CHECK(glShaderSource(shaderId, 1, &srcPtr, NULL));
-  GL_CHECK(glCompileShader(shaderId));
-
-  GL_CHECK(glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result));
-  GL_CHECK(glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLen));
-  if (infoLogLen > 0) {
-    vector<char> errMsg(infoLogLen + 1);
-    GL_CHECK(glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data()));
-    throw ShaderException(errMsg.data());
-  }
-
-  return shaderId;
-}
-
-void Mandelbrot::loadShaders(const string& vertShaderPath,
-                             const string& fragShaderPath,
-                             const string& computeColourImpl) {
-  GLuint vertShader = loadShader(vertShaderPath, GL_VERTEX_SHADER);
-  GLuint fragShader = loadShader(fragShaderPath, GL_FRAGMENT_SHADER,
-                                 computeColourImpl);
-
-  m_program = GL_CHECK(glCreateProgram());
-  GL_CHECK(glAttachShader(m_program, vertShader));
-  GL_CHECK(glAttachShader(m_program, fragShader));
-  GL_CHECK(glLinkProgram(m_program));
-
-  GLint result = GL_FALSE;
-  int infoLogLen = 0;
-
-  GL_CHECK(glGetProgramiv(m_program, GL_LINK_STATUS, &result));
-  GL_CHECK(glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLogLen));
-  if (infoLogLen > 0) {
-    vector<char> errMsg(infoLogLen + 1);
-    GL_CHECK(glGetProgramInfoLog(m_program, infoLogLen, NULL, errMsg.data()));
-    throw ShaderException(errMsg.data());
-  }
-
-  GL_CHECK(glDetachShader(m_program, vertShader));
-  GL_CHECK(glDetachShader(m_program, fragShader));
-
-  GL_CHECK(glDeleteShader(vertShader));
-  GL_CHECK(glDeleteShader(fragShader));
-
-  GL_CHECK(glUseProgram(m_program));
-
-  m_activeComputeColourImpl = computeColourImpl;
-}
-
 void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
   try {
-    GL_CHECK(glDeleteProgram(m_program));
-    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-                computeColourImpl);
+    GL_CHECK(glDeleteProgram(m_program.id));
+    compileProgram(computeColourImpl);
     updateUniforms();
   }
   catch (const ShaderException&) {
-    loadShaders("data/vert_shader.glsl", "data/frag_shader.glsl",
-                m_activeComputeColourImpl);
-
+    compileProgram(m_activeComputeColourImpl);
     throw;
   }
 }
 
 void Mandelbrot::setColourScheme(const string& presetName) {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
   setColourSchemeImpl(PRESETS.at(presetName));
 }
 
 void Mandelbrot::updateUniforms() {
-  GL_CHECK(glUniform1f(m_uniforms.uW, m_W));
-  GL_CHECK(glUniform1f(m_uniforms.uH, m_H));
-  GL_CHECK(glUniform1i(m_uniforms.uMaxIterations, m_maxIterations));
-  GL_CHECK(glUniform1f(m_uniforms.uXmin, m_xmin));
-  GL_CHECK(glUniform1f(m_uniforms.uXmax, m_xmax));
-  GL_CHECK(glUniform1f(m_uniforms.uYmin, m_ymin));
-  GL_CHECK(glUniform1f(m_uniforms.uYmax, m_ymax));
+  GL_CHECK(glUniform1f(m_program.u.w, m_w));
+  GL_CHECK(glUniform1f(m_program.u.h, m_h));
+  GL_CHECK(glUniform1i(m_program.u.maxIterations, m_maxIterations));
+  GL_CHECK(glUniform1f(m_program.u.xmin, m_xmin));
+  GL_CHECK(glUniform1f(m_program.u.xmax, m_xmax));
+  GL_CHECK(glUniform1f(m_program.u.ymin, m_ymin));
+  GL_CHECK(glUniform1f(m_program.u.ymax, m_ymax));
 }
 
 void Mandelbrot::setMaxIterations(int maxI) {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
   m_maxIterations = maxI;
   updateUniforms();
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
-  y = m_H - 1 - y;
+  y = m_h - 1 - y;
 
   double xRange = m_xmax - m_xmin;
   double yRange = m_ymax - m_ymin;
 
-  double centreX = m_xmin + xRange * x / m_W;
-  double centreY = m_ymin + yRange * y / m_H;
+  double centreX = m_xmin + xRange * x / m_w;
+  double centreY = m_ymin + yRange * y / m_h;
 
   double sf = mag;
 
@@ -342,22 +279,20 @@ void Mandelbrot::zoom(double x, double y, double mag) {
 }
 
 void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
   // Flip and swap
-  y0 = m_H - 1 - y0;
-  y1 = m_H - 1 - y1;
+  y0 = m_h - 1 - y0;
+  y1 = m_h - 1 - y1;
   std::swap(y0, y1);
 
   double xRange = m_xmax - m_xmin;
   double yRange = m_ymax - m_ymin;
 
-  double xmin = m_xmin + (x0 / m_W) * xRange;
-  double xmax = m_xmin + (x1 / m_W) * xRange;
-  double ymin = m_ymin + (y0 / m_H) * yRange;
-  double ymax = m_ymin + (y1 / m_H) * yRange;
+  double xmin = m_xmin + (x0 / m_w) * xRange;
+  double xmax = m_xmin + (x1 / m_w) * xRange;
+  double ymin = m_ymin + (y0 / m_h) * yRange;
+  double ymax = m_ymin + (y1 / m_h) * yRange;
 
   m_xmin = xmin;
   m_xmax = xmax;
@@ -368,29 +303,19 @@ void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
 }
 
 void Mandelbrot::draw() {
-  if (!m_initialised) {
-    return;
-  }
+  INIT_GUARD
 
   GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-  GL_CHECK(glUseProgram(m_program));
+  GL_CHECK(glUseProgram(m_program.id));
 
   GL_CHECK(glEnableVertexAttribArray(0));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vertexBufferId));
   GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
   GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
   GL_CHECK(glDisableVertexAttribArray(0));
 
   GL_CHECK(glFlush());
-}
-
-void Mandelbrot::drawSelectionRect(double x0, double y0, double x1, double y1) {
-  if (!m_initialised) {
-    return;
-  }
-
-  // TODO
 }
 
 double Mandelbrot::computeMagnification() const {

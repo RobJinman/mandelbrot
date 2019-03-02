@@ -1,6 +1,6 @@
 #include "canvas.hpp"
 #include "exception.hpp"
-#include "mandelbrot.hpp"
+#include "renderer.hpp"
 #include "wx_helpers.hpp"
 
 namespace chrono = std::chrono;
@@ -22,10 +22,10 @@ static bool selectionSizeAboveThreshold(const wxSize& sz) {
 }
 
 Canvas::Canvas(wxWindow* parent, const wxGLAttributes& glAttrs,
-               Mandelbrot& mandelbrot, std::function<void()> onRender)
+               Renderer& renderer, std::function<void()> onRender)
   : wxGLCanvas(parent, glAttrs, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                wxFULL_REPAINT_ON_RESIZE),
-    m_mandelbrot(mandelbrot),
+    m_renderer(renderer),
     m_onRender(onRender) {
 
   m_targetFps = DEFAULT_TARGET_FPS;
@@ -62,13 +62,9 @@ void Canvas::setZoomPerFrame(double zoom) {
 }
 
 void Canvas::onTick(wxTimerEvent&) {
-  if (!m_initialised) {
-    initGl();
-  }
-
   if (m_flyThroughMode) {
     auto p = dampenCursorPos(getCursorPos());
-    m_mandelbrot.zoom(p.x, p.y, m_zoomPerFrame);
+    m_renderer.brot.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
   render();
@@ -81,7 +77,7 @@ void Canvas::onResize(wxSizeEvent& e) {
 
 void Canvas::resize() {
   auto sz = GetSize();
-  m_mandelbrot.resize(sz.x, sz.y);
+  m_renderer.resize(sz.x, sz.y);
 
   refresh();
 }
@@ -117,7 +113,7 @@ void Canvas::deactivateFlyThroughMode() {
 
 void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   SetFocus();
-  wxGLCanvas::SetCurrent(*m_context);
+  SetCurrent(*m_context);
 
   m_mouseDown = true;
   m_selectionRect = wxRect(e.GetPosition(), wxSize(0, 0));
@@ -125,7 +121,7 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   auto sz = GetSize();
 
   size_t nBytes = 0;
-  uint8_t* data = m_mandelbrot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
+  uint8_t* data = m_renderer.brot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
 
   wxImage image(sz.x, sz.y, data);
   image = image.Mirror(false);
@@ -142,12 +138,12 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
     int x1 = x0 + m_selectionRect.width;
     int y1 = y0 + m_selectionRect.height;
 
-    m_mandelbrot.zoom(x0, y0, x1, y1);
+    m_renderer.brot.zoom(x0, y0, x1, y1);
     refresh();
   }
 }
 
-void Canvas::onMouseMove(wxMouseEvent& e) {
+void Canvas::onMouseMove(wxMouseEvent&) {
   if (m_mouseDown) {
     wxPoint p = wxGetMousePosition() - GetScreenPosition();
     wxPoint sz_p = p - m_selectionRect.GetTopLeft();
@@ -178,23 +174,9 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
     }
   }
   else if (key == 'R') {
-    m_mandelbrot.reset();
+    m_renderer.brot.reset();
     refresh();
   }
-}
-
-void Canvas::initGl() {
-  if (!IsShownOnScreen()) {
-    return;
-  }
-
-  wxGLCanvas::SetCurrent(*m_context);
-
-  m_mandelbrot.init();
-
-  resize();
-
-  m_initialised = true;
 }
 
 void Canvas::measureFrameRate() {
@@ -210,8 +192,10 @@ void Canvas::measureFrameRate() {
 }
 
 void Canvas::onPaint(wxPaintEvent&) {
-  if (!m_initialised) {
-    initGl();
+  if (!m_renderer.isInitialised()) {
+    SetCurrent(*m_context);
+    m_renderer.initialise();
+    resize();
   }
 
   render();
@@ -245,7 +229,7 @@ void Canvas::render() {
     return;
   }
 
-  wxGLCanvas::SetCurrent(*m_context);
+  SetCurrent(*m_context);
 
   if (m_mouseDown) {
     int x0 = m_selectionRect.x;
@@ -253,10 +237,10 @@ void Canvas::render() {
     int x1 = x0 + m_selectionRect.width;
     int y1 = y0 + m_selectionRect.height;
 
-    m_mandelbrot.drawSelectionRect(x0, y0, x1, y1);
+    m_renderer.drawSelectionRect(x0, y0, x1, y1);
   }
   else {
-    m_mandelbrot.draw();
+    m_renderer.brot.draw();
   }
 
   measureFrameRate();

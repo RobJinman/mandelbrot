@@ -5,7 +5,10 @@
 #include <wx/splitter.h>
 #include <wx/notebook.h>
 #include "canvas.hpp"
-#include "mandelbrot.hpp"
+#include "renderer.hpp"
+
+const int WINDOW_W = 1000;
+const int WINDOW_H = 600;
 
 class MainWindow : public wxFrame {
 public:
@@ -43,7 +46,7 @@ private:
   void onCanvasGainFocus(wxFocusEvent& e);
   void onCanvasLoseFocus(wxFocusEvent& e);
 
-  std::unique_ptr<Mandelbrot> m_mandelbrot;
+  std::unique_ptr<Renderer> m_renderer;
   wxSplitterWindow* m_splitter;
   wxBoxSizer* m_vbox;
   wxNotebook* m_rightPanel;
