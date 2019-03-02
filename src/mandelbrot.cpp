@@ -87,6 +87,16 @@ void Mandelbrot::resize(int w, int h) {
 }
 
 void Mandelbrot::init() {
+  glewExperimental = GL_TRUE;
+  GLenum result = glewInit();
+  if (result != GLEW_OK) {
+    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
+  }
+
+  if (!GLEW_VERSION_3_3) {
+    throw MissingGlSupportException("OpenGL 3.3 not supported");
+  }
+
   GL_CHECK(glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE));
   GL_CHECK(glPixelStorei(GL_PACK_LSB_FIRST, GL_FALSE));
   GL_CHECK(glPixelStorei(GL_PACK_ROW_LENGTH, 0));
@@ -370,6 +380,8 @@ void Mandelbrot::draw() {
 
   GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
   GL_CHECK(glDisableVertexAttribArray(0));
+
+  GL_CHECK(glFlush());
 }
 
 double Mandelbrot::computeMagnification() const {

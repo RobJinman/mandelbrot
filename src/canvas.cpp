@@ -178,12 +178,6 @@ void Canvas::initGl() {
 
   wxGLCanvas::SetCurrent(*m_context);
 
-  glewExperimental = GL_TRUE;
-  GLenum result = glewInit();
-  if (result != GLEW_OK) {
-    EXCEPTION("Failed to initialize GLEW: " << glewGetErrorString(result));
-  }
-
   m_mandelbrot.init();
 
   resize();
@@ -241,11 +235,11 @@ void Canvas::render(wxDC&) {
   }
 
   wxGLCanvas::SetCurrent(*m_context);
+
   m_mandelbrot.draw();
 
   measureFrameRate();
 
-  glFlush();
   SwapBuffers();
 
   m_onRender();

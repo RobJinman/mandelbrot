@@ -46,3 +46,9 @@ public:
 
   const GLenum code;
 };
+
+class MissingGlSupportException : public std::runtime_error {
+public:
+  MissingGlSupportException(const std::string& msg)
+    : runtime_error(msg) {}
+};
