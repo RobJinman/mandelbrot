@@ -82,47 +82,14 @@ void Mandelbrot::initialise() {
   GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData),
                         vertexBufferData, GL_STATIC_DRAW));
 
-  compileProgram(PRESETS.at(DEFAULT_COLOUR_SCHEME));
+  string computeColourImpl = PRESETS.at(DEFAULT_COLOUR_SCHEME);
+  compileProgram_(computeColourImpl);
+  m_activeComputeColourImpl = computeColourImpl;
 
   reset();
   initUniforms();
 
   m_initialised = true;
-}
-
-void Mandelbrot::compileProgram(const string& computeColourImpl) {
-  GLuint vertShader = loadShader(m_vertShaderPath, GL_VERTEX_SHADER);
-  GLuint fragShader =
-    loadShaderWithSubstitution(m_fragShaderPath, GL_FRAGMENT_SHADER,
-                               COMPUTE_COLOUR_IMPL_SEARCH_STRING,
-                               computeColourImpl);
-
-  m_program.id = GL_CHECK(glCreateProgram());
-  GL_CHECK(glAttachShader(m_program.id, vertShader));
-  GL_CHECK(glAttachShader(m_program.id, fragShader));
-  GL_CHECK(glLinkProgram(m_program.id));
-
-  GLint result = GL_FALSE;
-  int infoLogLen = 0;
-
-  GL_CHECK(glGetProgramiv(m_program.id, GL_LINK_STATUS, &result));
-  GL_CHECK(glGetProgramiv(m_program.id, GL_INFO_LOG_LENGTH, &infoLogLen));
-  if (infoLogLen > 0) {
-    vector<char> errMsg(infoLogLen + 1);
-    GL_CHECK(glGetProgramInfoLog(m_program.id, infoLogLen, NULL,
-                                 errMsg.data()));
-    throw ShaderException(errMsg.data());
-  }
-
-  GL_CHECK(glDetachShader(m_program.id, vertShader));
-  GL_CHECK(glDetachShader(m_program.id, fragShader));
-
-  GL_CHECK(glDeleteShader(vertShader));
-  GL_CHECK(glDeleteShader(fragShader));
-
-  GL_CHECK(glUseProgram(m_program.id));
-
-  m_activeComputeColourImpl = computeColourImpl;
 }
 
 void Mandelbrot::reset() {
@@ -222,13 +189,21 @@ void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
 
   try {
     GL_CHECK(glDeleteProgram(m_program.id));
-    compileProgram(computeColourImpl);
+    compileProgram_(computeColourImpl);
     updateUniforms();
   }
   catch (const ShaderException&) {
-    compileProgram(m_activeComputeColourImpl);
+    compileProgram_(m_activeComputeColourImpl);
+    updateUniforms();
     throw;
   }
+}
+
+void Mandelbrot::compileProgram_(const std::string& computeColourImpl) {
+  m_program.id = compileProgram(m_vertShaderPath, m_fragShaderPath,
+                                COMPUTE_COLOUR_IMPL_SEARCH_STRING,
+                                computeColourImpl);
+  m_activeComputeColourImpl = computeColourImpl;
 }
 
 void Mandelbrot::setColourScheme(const string& presetName) {

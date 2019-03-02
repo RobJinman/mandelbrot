@@ -67,7 +67,7 @@ private:
   std::string m_fragShaderPath;
   std::string m_activeComputeColourImpl;
 
-  void compileProgram(const std::string& computeColourImpl);
   void initUniforms();
   void updateUniforms();
+  void compileProgram_(const std::string& computeColourImpl);
 };

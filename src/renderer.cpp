@@ -5,7 +5,6 @@
 #include <map>
 #include "renderer.hpp"
 #include "exception.hpp"
-#include <iostream> // TODO
 
 #define INIT_GUARD \
   if (!m_initialised) { \
