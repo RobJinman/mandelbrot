@@ -1,9 +1,7 @@
 #pragma once
 
-#define STRINGIFY(x) #x
-#define TO_STRING(x) STRINGIFY(x)
-
 #include <GL/glew.h>
+#include "config.hpp"
 
 #ifdef __APPLE__
   #define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED

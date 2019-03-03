@@ -16,8 +16,8 @@ static const int FLOATS_PER_RECT = VERTS_PER_RECT * FLOATS_PER_VERT;
 static const GLfloat COLOUR[3] = { 0.0f, 1.0f, 0.0f };
 
 Renderer::Renderer(int w, int h, std::function<void()> fnMakeGlContextCurrent)
-  : m_brot(w, h),
-    m_fnMakeGlContextCurrent(fnMakeGlContextCurrent) {
+  : m_fnMakeGlContextCurrent(fnMakeGlContextCurrent),
+    m_brot(w, h) {
 
   m_w = w;
   m_h = h;

@@ -134,10 +134,10 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
     int y1 = y0 + m_selectionRect.height;
 
     m_renderer.zoom(x0, y0, x1, y1);
-    refresh();
   }
 
   m_renderer.drawSelectionRect(0, 0, 0, 0);
+  refresh();
 }
 
 void Canvas::onMouseMove(wxMouseEvent&) {

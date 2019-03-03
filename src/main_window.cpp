@@ -93,22 +93,33 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   };
 
   auto addText = [txtInfo](const wxString& text, bool translate = true,
-                           bool newline = true) {
+                           bool newline = true, bool bold = false) {
+    if (bold) {
+      txtInfo->BeginBold();
+    }
     txtInfo->WriteText(translate ? wxGetTranslation(text) : text);
     if (newline) {
       txtInfo->Newline();
+    }
+    if (bold) {
+      txtInfo->EndBold();
     }
   };
 
   txtInfo->SetEditable(false);
   txtInfo->SetMinSize(wxSize(0, 80));
 
+  addHeading(versionString());
+  addText("The Mandelbrot fractal rendered on the GPU.");
+  txtInfo->Newline();
+  addText("Click and drag the canvas to zoom.");
+  txtInfo->Newline();
   addHeading(wxGetTranslation("Controls"));
-  addText("R\t\t", false, false);
+  addText("R\t\t", false, false, true);
   addText("Reset view");
-  addText("Z\t\t", false, false);
+  addText("Z\t\t", false, false, true);
   addText("Toggle Fly-Through mode");
-  addText("SPACE\t", false, false);
+  addText("SPACE\t", false, false, true);
   addText("Zoom on centre");
 
   vbox->AddSpacer(10);
@@ -502,8 +513,7 @@ void MainWindow::onExit(wxCommandEvent&) {
 
 void MainWindow::onAbout(wxCommandEvent&) {
   std::stringstream ss;
-  ss << "The Mandelbrot fractal rendered on the GPU inside a fragment "
-        "shader." << std::endl << std::endl;
+  ss << "The Mandelbrot fractal rendered on the GPU." << std::endl << std::endl;
   ss << "Author: Rob Jinman <jinmanr@gmail.com>" << std::endl << std::endl;
   ss << "Copyright Rob Jinman 2019. All rights reserved.";
 
