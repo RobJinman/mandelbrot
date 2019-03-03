@@ -33,10 +33,12 @@ public:
 
   double computeMagnification() const;
 
-  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
+  void renderToMainMemoryBuffer(int w, int h);
+  bool getRenderResult(int& w, int& h, uint8_t*& data, size_t& nBytes);
 
 private:
   bool m_initialised = false;
+  bool m_busy = false;
 
   struct {
     GLuint id;
@@ -72,6 +74,15 @@ private:
   std::string m_texFragShaderPath;
 
   std::string m_activeComputeColourImpl;
+
+  struct {
+    int prevW = 0;
+    int prevH = 0;
+    int w = 0;
+    int h = 0;
+    GLuint texture = 0;
+    GLsync sync;
+  } m_offlineRender;
 
   void initUniforms();
   void updateUniforms();

@@ -45,8 +45,11 @@ private:
   void onExportWidthChange(wxCommandEvent& e);
   void onCanvasGainFocus(wxFocusEvent& e);
   void onCanvasLoseFocus(wxFocusEvent& e);
+  void onRenderStatusPoll(wxTimerEvent& e);
 
   std::unique_ptr<Renderer> m_renderer;
+  wxTimer* m_statusPoller;
+  wxString m_exportPath;
   wxSplitterWindow* m_splitter;
   wxBoxSizer* m_vbox;
   wxNotebook* m_rightPanel;

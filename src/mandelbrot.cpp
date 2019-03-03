@@ -1,6 +1,7 @@
 #include "mandelbrot.hpp"
 #include "exception.hpp"
 #include "render_utils.hpp"
+#include <iostream> // TODO
 
 #define INIT_GUARD \
   if (!m_initialised) { \
@@ -10,6 +11,11 @@
 #define INIT_EXCEPT \
   if (!m_initialised) { \
     throw std::runtime_error("Mandelbrot not initialised"); \
+  }
+
+#define BUSY_GUARD \
+  if (m_busy) { \
+    return; \
   }
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -109,6 +115,8 @@ void Mandelbrot::reset() {
 }
 
 void Mandelbrot::resize(int w, int h) {
+  std::cout << "Mandelbrot::resize\n";
+
   double yScale = static_cast<double>(h) / static_cast<double>(m_h);
   double expectedW = m_w * yScale;
   double xScale = w / expectedW;
@@ -160,13 +168,16 @@ GLuint Mandelbrot::renderToTexture(int w, int h) {
   return texture;
 }
 
-uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
-  INIT_EXCEPT
+void Mandelbrot::renderToMainMemoryBuffer(int w, int h) {
+  INIT_GUARD
+  BUSY_GUARD
 
   GL_CHECK(glUseProgram(m_program.id));
 
-  int prevW = m_w;
-  int prevH = m_h;
+  m_offlineRender.prevW = m_w;
+  m_offlineRender.prevH = m_h;
+  m_offlineRender.w = w;
+  m_offlineRender.h = h;
   m_w = w;
   m_h = h;
   GL_CHECK(glViewport(0, 0, w, h));
@@ -176,19 +187,45 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
   GL_CHECK(glGenFramebuffers(1, &frameBufferName));
   GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName));
 
-  GLuint texture = renderToTexture(w, h);
+  m_busy = true;
 
-  bytes = w * h * 3;
-  uint8_t* data = new uint8_t[bytes];
+  m_offlineRender.texture = renderToTexture(w, h);
+  m_offlineRender.sync = GL_CHECK(glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE,
+                                              0));
 
-  GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
-  GL_CHECK(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
+  std::cout << "hello\n";
+}
 
-  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+bool Mandelbrot::getRenderResult(int& w, int& h, uint8_t*& data,
+                                 size_t& nBytes) {
+  std::cout << "Mandelbrot::getRenderResult\n";
+  auto& r = m_offlineRender;
 
-  resize(prevW, prevH);
+  GLsizei len;
+  GLint val;
+  GL_CHECK(glGetSynciv(r.sync, GL_SYNC_CONDITION, sizeof(GLint), &len, &val));
 
-  return data;
+  if (val == GL_SYNC_GPU_COMMANDS_COMPLETE) {
+    nBytes = r.w * r.h * 3;
+    data = new uint8_t[nBytes];
+
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, r.texture));
+    GL_CHECK(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
+
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+    resize(r.prevW, r.prevH);
+
+    w = r.w;
+    h = r.h;
+
+    m_busy = false;
+
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 void Mandelbrot::initUniforms() {
@@ -207,6 +244,7 @@ void Mandelbrot::initUniforms() {
 }
 
 void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
+  std::cout << "Mandelbrot::setColourSchemeImpl\n";
   INIT_GUARD
 
   try {
@@ -230,6 +268,7 @@ void Mandelbrot::compileProgram_(const std::string& computeColourImpl) {
 }
 
 void Mandelbrot::setColourScheme(const string& presetName) {
+  std::cout << "Mandelbrot::setColourScheme\n";
   INIT_GUARD
 
   setColourSchemeImpl(PRESETS.at(presetName));
@@ -248,6 +287,7 @@ void Mandelbrot::updateUniforms() {
 }
 
 void Mandelbrot::setMaxIterations(int maxI) {
+  std::cout << "Mandelbrot::setMaxIterations\n";
   INIT_GUARD
 
   m_maxIterations = maxI;
@@ -255,6 +295,7 @@ void Mandelbrot::setMaxIterations(int maxI) {
 }
 
 void Mandelbrot::zoom(double x, double y, double mag) {
+  std::cout << "Mandelbrot::zoom\n";
   INIT_GUARD
 
   y = m_h - 1 - y;
@@ -279,6 +320,7 @@ void Mandelbrot::zoom(double x, double y, double mag) {
 }
 
 void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
+  std::cout << "Mandelbrot::zoom\n";
   INIT_GUARD
 
   // Flip and swap
@@ -324,7 +366,9 @@ void Mandelbrot::drawFromTexture() {
 }
 
 void Mandelbrot::draw(bool fromTexture) {
+  std::cout << "Mandelbrot::draw\n";
   INIT_GUARD
+  BUSY_GUARD
 
   if (!fromTexture) {
     GL_CHECK(glDeleteTextures(1, &m_texture));

@@ -8,6 +8,7 @@
 #include "wx_helpers.hpp"
 
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
+static const double RENDER_STATUS_POLL_INTERVAL = 0.2;
 
 static std::string formatDouble(double d) {
   std::stringstream ss;
@@ -18,6 +19,7 @@ static std::string formatDouble(double d) {
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
+  EVT_TIMER(wxID_ANY, MainWindow::onRenderStatusPoll)
 wxEND_EVENT_TABLE()
 
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
@@ -43,6 +45,8 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
+
+  m_statusPoller = new wxTimer(this);
 }
 
 void MainWindow::constructLeftPanel() {
@@ -419,13 +423,26 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   long h = 0;
   m_txtExportHeight->GetValue().ToLong(&h);
 
+  m_exportPath = fileDialog.GetPath();
+
+  m_renderer->brot.renderToMainMemoryBuffer(w, h);
+  m_statusPoller->Start(RENDER_STATUS_POLL_INTERVAL * 1000.0);
+}
+
+void MainWindow::onRenderStatusPoll(wxTimerEvent&) {
+  int w = 0;
+  int h = 0;
+  uint8_t* data = nullptr;
   size_t nBytes = 0;
-  uint8_t* data = m_renderer->brot.renderToMainMemoryBuffer(w, h, nBytes);
 
-  wxImage image(w, h, data);
-  image = image.Mirror(false);
+  if (m_renderer->brot.getRenderResult(w, h, data, nBytes)) {
+    wxImage image(w, h, data);
+    image = image.Mirror(false);
 
-  image.SaveFile(fileDialog.GetPath(), wxBITMAP_TYPE_BMP);
+    image.SaveFile(m_exportPath, wxBITMAP_TYPE_BMP);
+
+    m_statusPoller->Stop();
+  }
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
