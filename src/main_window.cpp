@@ -23,7 +23,9 @@ wxEND_EVENT_TABLE()
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
   : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size) {
 
-  m_renderer.reset(new Renderer(400, 400));
+  m_renderer.reset(new Renderer(400, 400, [this]() {
+    makeGlContextCurrent();
+  }));
 
   m_vbox = new wxBoxSizer(wxVERTICAL);
   SetSizer(m_vbox);
@@ -43,6 +45,12 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
+}
+
+void MainWindow::makeGlContextCurrent() {
+  if (m_canvas) {
+    m_canvas->makeGlContextCurrent();
+  }
 }
 
 void MainWindow::constructLeftPanel() {
@@ -398,12 +406,12 @@ void MainWindow::onExportWidthChange(wxCommandEvent&) {
 }
 
 void MainWindow::onRender() {
-  auto magLevel = formatDouble(m_renderer->brot.computeMagnification());
+  auto magLevel = formatDouble(m_renderer->computeMagnification());
   m_dataFields.txtMagLevel->SetLabel(magLevel);
-  m_dataFields.txtXMin->SetLabel(formatDouble(m_renderer->brot.getXMin()));
-  m_dataFields.txtXMax->SetLabel(formatDouble(m_renderer->brot.getXMax()));
-  m_dataFields.txtYMin->SetLabel(formatDouble(m_renderer->brot.getYMin()));
-  m_dataFields.txtYMax->SetLabel(formatDouble(m_renderer->brot.getYMax()));
+  m_dataFields.txtXMin->SetLabel(formatDouble(m_renderer->getXMin()));
+  m_dataFields.txtXMax->SetLabel(formatDouble(m_renderer->getXMax()));
+  m_dataFields.txtYMin->SetLabel(formatDouble(m_renderer->getYMin()));
+  m_dataFields.txtYMax->SetLabel(formatDouble(m_renderer->getYMax()));
 }
 
 void MainWindow::onExportClick(wxCommandEvent&) {
@@ -420,7 +428,7 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   m_txtExportHeight->GetValue().ToLong(&h);
 
   size_t nBytes = 0;
-  uint8_t* data = m_renderer->brot.renderToMainMemoryBuffer(w, h, nBytes);
+  uint8_t* data = m_renderer->renderToMainMemoryBuffer(w, h, nBytes);
 
   wxImage image(w, h, data);
   image = image.Mirror(false);
@@ -433,7 +441,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 
   long maxI = 0;
   m_txtMaxIterations->GetValue().ToLong(&maxI);
-  m_renderer->brot.setMaxIterations(maxI);
+  m_renderer->setMaxIterations(maxI);
   needRefresh = true;
 
   double targetFps = 0;
@@ -452,7 +460,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 void MainWindow::applyColourScheme() {
   try {
     std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
-    m_renderer->brot.setColourSchemeImpl(code);
+    m_renderer->setColourSchemeImpl(code);
     m_canvas->refresh();
     m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
   }

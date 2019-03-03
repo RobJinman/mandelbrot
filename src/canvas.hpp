@@ -17,6 +17,7 @@ public:
          std::function<void()> onRender);
 
   void refresh();
+  void makeGlContextCurrent();
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
 

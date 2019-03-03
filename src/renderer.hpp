@@ -4,7 +4,7 @@
 
 class Renderer {
 public:
-  Renderer(int w, int h);
+  Renderer(int w, int h, std::function<void()> fnMakeGlContextCurrent);
 
   void initialise();
   bool isInitialised() const;
@@ -12,12 +12,31 @@ public:
   void draw(bool fromTexture = false);
   void drawSelectionRect(double x, double y, double w, double h);
 
-  Mandelbrot brot;
+  void zoom(double x, double y, double mag);
+  void zoom(double x0, double y0, double x1, double y1);
+  void resetZoom();
+
+  void setMaxIterations(int maxI);
+  void setColourScheme(const std::string& presetName);
+  void setColourSchemeImpl(const std::string& computeColourImpl);
+
+  double getXMin() const;
+  double getXMax() const;
+  double getYMin() const;
+  double getYMax() const;
+  int getMaxIterations() const;
+
+  double computeMagnification() const;
+
+  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
 
 private:
   bool m_initialised = false;
   double m_w;
   double m_h;
+  std::function<void()> m_fnMakeGlContextCurrent;
+
+  Mandelbrot m_brot;
 
   struct {
     GLuint id;

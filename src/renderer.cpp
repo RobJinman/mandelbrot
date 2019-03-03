@@ -15,8 +15,9 @@ static const int FLOATS_PER_RECT = VERTS_PER_RECT * FLOATS_PER_VERT;
 
 static const GLfloat COLOUR[3] = { 0.0f, 1.0f, 0.0f };
 
-Renderer::Renderer(int w, int h)
-  : brot(w, h) {
+Renderer::Renderer(int w, int h, std::function<void()> fnMakeGlContextCurrent)
+  : m_brot(w, h),
+    m_fnMakeGlContextCurrent(fnMakeGlContextCurrent) {
 
   m_w = w;
   m_h = h;
@@ -51,7 +52,7 @@ void Renderer::initialise() {
   GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0));
   GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
 
-  brot.initialise();
+  m_brot.initialise();
 
   m_program.id = compileProgram(m_vertShaderPath, m_fragShaderPath);
   initUniforms();
@@ -71,7 +72,7 @@ void Renderer::initialise() {
   m_initialised = true;
 }
 
-void Renderer::initUniforms() {
+void Renderer::initUniforms() { 
   GL_CHECK(glUseProgram(m_program.id));
 
   m_program.u.colour = GL_CHECK(glGetUniformLocation(m_program.id, "u_colour"));
@@ -81,10 +82,11 @@ void Renderer::initUniforms() {
 
 void Renderer::draw(bool fromTexture) {
   INIT_GUARD
+  m_fnMakeGlContextCurrent();
 
   GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-  brot.draw(fromTexture);
+  m_brot.draw(fromTexture);
 
   GL_CHECK(glUseProgram(m_program.id));
 
@@ -100,13 +102,16 @@ void Renderer::draw(bool fromTexture) {
 
 void Renderer::resize(int w, int h) {
   INIT_GUARD
+  m_fnMakeGlContextCurrent();
 
-  brot.resize(w, h);
+  m_brot.resize(w, h);
   m_w = w;
   m_h = h;
 }
 
 void Renderer::updateUniforms(const float colour[3]) {
+  m_fnMakeGlContextCurrent();
+
   GL_CHECK(glUseProgram(m_program.id));
   GL_CHECK(glUniform3f(m_program.u.colour, colour[0], colour[1], colour[2]));
 }
@@ -175,8 +180,68 @@ void Renderer::makeSelectionRect(double x, double y, double w, double h) {
 
 void Renderer::drawSelectionRect(double x, double y, double w, double h) {
   INIT_GUARD
+  m_fnMakeGlContextCurrent();
 
   makeSelectionRect(x, y, w, h);
 
   updateUniforms(COLOUR);
+}
+
+void Renderer::zoom(double x, double y, double mag) {
+  m_fnMakeGlContextCurrent();
+  m_brot.zoom(x, y, mag);
+}
+
+void Renderer::zoom(double x0, double y0, double x1, double y1) {
+  m_fnMakeGlContextCurrent();
+  m_brot.zoom(x0, y0, x1, y1);
+}
+
+void Renderer::resetZoom() {
+  m_fnMakeGlContextCurrent();
+  m_brot.reset();
+}
+
+void Renderer::setMaxIterations(int maxI) {
+  m_fnMakeGlContextCurrent();
+  m_brot.setMaxIterations(maxI);
+}
+
+void Renderer::setColourScheme(const std::string& presetName) {
+  m_fnMakeGlContextCurrent();
+  m_brot.setColourScheme(presetName);
+}
+
+void Renderer::setColourSchemeImpl(const std::string& computeColourImpl) {
+  m_fnMakeGlContextCurrent();
+  m_brot.setColourSchemeImpl(computeColourImpl);
+}
+
+double Renderer::getXMin() const {
+  return m_brot.getXMin();
+}
+
+double Renderer::getXMax() const {
+  return m_brot.getXMax();
+}
+
+double Renderer::getYMin() const {
+  return m_brot.getYMin();
+}
+
+double Renderer::getYMax() const {
+  return m_brot.getYMax();
+}
+
+int Renderer::getMaxIterations() const {
+  return m_brot.getMaxIterations();
+}
+
+double Renderer::computeMagnification() const {
+  return m_brot.computeMagnification();
+}
+
+uint8_t* Renderer::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  m_fnMakeGlContextCurrent();
+  return m_brot.renderToMainMemoryBuffer(w, h, bytes);
 }

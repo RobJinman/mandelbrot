@@ -64,7 +64,7 @@ void Canvas::setZoomPerFrame(double zoom) {
 void Canvas::onTick(wxTimerEvent&) {
   if (m_flyThroughMode) {
     auto p = dampenCursorPos(getCursorPos());
-    m_renderer.brot.zoom(p.x, p.y, m_zoomPerFrame);
+    m_renderer.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
   render();
@@ -128,7 +128,7 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
     int x1 = x0 + m_selectionRect.width;
     int y1 = y0 + m_selectionRect.height;
 
-    m_renderer.brot.zoom(x0, y0, x1, y1);
+    m_renderer.zoom(x0, y0, x1, y1);
     refresh();
   }
 
@@ -166,7 +166,7 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
     }
   }
   else if (key == 'R') {
-    m_renderer.brot.reset();
+    m_renderer.resetZoom();
     refresh();
   }
 }
@@ -214,6 +214,10 @@ wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
   p_.y = centreY + dy * sf;
 
   return p_;
+}
+
+void Canvas::makeGlContextCurrent() {
+  SetCurrent(*m_context);
 }
 
 void Canvas::render() {

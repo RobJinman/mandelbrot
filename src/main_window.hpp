@@ -32,6 +32,7 @@ private:
   void onRender();
   void applyColourScheme();
   void adjustExportSize(bool adjustWidth);
+  void makeGlContextCurrent();
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
