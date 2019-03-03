@@ -90,7 +90,12 @@ void Mandelbrot::initialise() {
   compileProgram_(computeColourImpl);
   m_activeComputeColourImpl = computeColourImpl;
 
-  reset();
+  m_maxIterations = DEFAULT_MAX_ITERATIONS;
+  m_xmin = INITIAL_XMIN;
+  m_xmax = INITIAL_XMAX;
+  m_ymin = INITIAL_YMIN;
+  m_ymax = INITIAL_YMAX;
+
   initUniforms();
 
   m_initialised = true;
@@ -99,9 +104,11 @@ void Mandelbrot::initialise() {
 void Mandelbrot::reset() {
   m_maxIterations = DEFAULT_MAX_ITERATIONS;
   m_xmin = INITIAL_XMIN;
-  m_xmax = INITIAL_XMAX;
   m_ymin = INITIAL_YMIN;
   m_ymax = INITIAL_YMAX;
+
+  double aspect = static_cast<double>(m_w) / static_cast<double>(m_h);
+  m_xmax = m_xmin + aspect * (m_ymax - m_ymin);
 
   INIT_GUARD
 

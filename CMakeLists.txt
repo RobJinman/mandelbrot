@@ -27,8 +27,6 @@ include_directories(
   "${VENDOR_DIR}/include"
 )
 
-message("${VENDOR_DIR}/include")
-
 link_directories("${VENDOR_DIR}/lib")
 
 function(find_vendor_libs RESULT LIB_NAMES)

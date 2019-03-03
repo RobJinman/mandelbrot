@@ -8,7 +8,6 @@
 #include "wx_helpers.hpp"
 
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
-static const int DEFAULT_ZOOM_OUT_INC = 1.2;
 
 static std::string formatDouble(double d) {
   std::stringstream ss;
@@ -181,7 +180,7 @@ wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
   m_txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   auto lblZoomAmount = constructLabel(box,
                                       wxGetTranslation("Zoom amount"));
-  m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM_OUT_INC));
+  m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
   m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
