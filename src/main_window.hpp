@@ -54,6 +54,7 @@ private:
   wxPanel* m_leftPanel;
   Canvas* m_canvas;
   wxTextCtrl* m_txtMaxIterations;
+  wxTextCtrl* m_txtZoomAmount;
   wxTextCtrl* m_txtTargetFps;
   wxTextCtrl* m_txtZoomPerFrame;
   wxTextCtrl* m_txtComputeColourImpl;

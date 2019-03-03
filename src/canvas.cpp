@@ -30,6 +30,7 @@ Canvas::Canvas(wxWindow* parent, const wxGLAttributes& glAttrs,
 
   m_targetFps = DEFAULT_TARGET_FPS;
   m_zoomPerFrame = DEFAULT_ZOOM_PER_FRAME;
+  m_zoomAmount = DEFAULT_ZOOM;
 
 #ifdef __APPLE__
   wxGLContextAttrs attrs;
@@ -59,6 +60,10 @@ void Canvas::setTargetFps(double fps) {
 
 void Canvas::setZoomPerFrame(double zoom) {
   m_zoomPerFrame = zoom;
+}
+
+void Canvas::setZoomAmount(double zoom) {
+  m_zoomAmount = zoom;
 }
 
 void Canvas::onTick(wxTimerEvent&) {
@@ -167,6 +172,11 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
   }
   else if (key == 'R') {
     m_renderer.resetZoom();
+    refresh();
+  }
+  else if (key == WXK_SPACE) {
+    auto sz = GetClientSize();
+    m_renderer.zoom(sz.x / 2, sz.y / 2, m_zoomAmount);
     refresh();
   }
 }

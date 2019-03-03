@@ -8,6 +8,7 @@
 #include "wx_helpers.hpp"
 
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
+static const int DEFAULT_ZOOM_OUT_INC = 1.2;
 
 static std::string formatDouble(double d) {
   std::stringstream ss;
@@ -104,10 +105,12 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   txtInfo->SetMinSize(wxSize(0, 80));
 
   addHeading(wxGetTranslation("Controls"));
-  addText("R\t", false, false);
+  addText("R\t\t", false, false);
   addText("Reset view");
-  addText("Z\t", false, false);
+  addText("Z\t\t", false, false);
   addText("Toggle Fly-Through mode");
+  addText("SPACE\t", false, false);
+  addText("Zoom on centre");
 
   vbox->AddSpacer(10);
   vbox->Add(txtInfo, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
@@ -167,21 +170,26 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
 }
 
 wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Render Parameters"));
+  auto box = new wxStaticBox(parent, wxID_ANY, "");
 
   auto grid = new wxFlexGridSizer(2);
   box->SetSizer(grid);
 
-  auto strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
-  m_txtMaxIterations = constructTextBox(box, strMaxI);
+  m_txtMaxIterations = constructTextBox(box,
+                                        std::to_string(DEFAULT_MAX_ITERATIONS));
   m_txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  auto lblZoomAmount = constructLabel(box,
+                                      wxGetTranslation("Zoom amount"));
+  m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM_OUT_INC));
+  m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
   grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtZoomAmount, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
 
@@ -437,12 +445,13 @@ void MainWindow::onExportClick(wxCommandEvent&) {
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
-  bool needRefresh = false;
-
   long maxI = 0;
   m_txtMaxIterations->GetValue().ToLong(&maxI);
   m_renderer->setMaxIterations(maxI);
-  needRefresh = true;
+
+  double zoomAmount = 1.0;
+  m_txtZoomAmount->GetValue().ToDouble(&zoomAmount);
+  m_canvas->setZoomAmount(zoomAmount);
 
   double targetFps = 0;
   m_txtTargetFps->GetValue().ToDouble(&targetFps);
@@ -452,9 +461,7 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
   m_txtZoomPerFrame->GetValue().ToDouble(&zoomPerFrame);
   m_canvas->setZoomPerFrame(zoomPerFrame);
 
-  if (needRefresh) {
-    m_canvas->refresh();
-  }
+  m_canvas->refresh();
 }
 
 void MainWindow::applyColourScheme() {

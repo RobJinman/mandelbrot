@@ -8,6 +8,7 @@
 
 const double DEFAULT_TARGET_FPS = 10.0;
 const double DEFAULT_ZOOM_PER_FRAME = 1.025;
+const double DEFAULT_ZOOM = 1.2;
 
 class Renderer;
 
@@ -20,6 +21,7 @@ public:
   void makeGlContextCurrent();
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
+  void setZoomAmount(double zoom);
 
 private:
   void render();
@@ -50,6 +52,7 @@ private:
   bool m_flyThroughMode = false;
   double m_targetFps;
   double m_zoomPerFrame;
+  double m_zoomAmount;
   std::unique_ptr<wxBitmap> m_background;
   bool m_mouseDown = false;
   wxRect m_selectionRect;
