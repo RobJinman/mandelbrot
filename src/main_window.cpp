@@ -41,7 +41,7 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
   constructLeftPanel();
   constructRightPanel();
 
-  m_splitter->SplitVertically(m_leftPanel, m_rightPanel, 0.6 * WINDOW_W);
+  m_splitter->SplitVertically(m_leftPanel, m_rightPanel, 0.55 * WINDOW_W);
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
@@ -153,16 +153,11 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   txtShaderCodePre->SetFont(codeFontBold);
   m_txtComputeColourImpl = constructTextBox(box,
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
-                                            true);
-  auto ws = m_txtComputeColourImpl->GetWindowStyle();
-  m_txtComputeColourImpl->SetWindowStyle(ws | wxHSCROLL);
+                                            true, false, true);
   m_txtComputeColourImpl->SetFont(codeFontNormal);
   auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
   txtShaderCodePost->SetFont(codeFontBold);
-  m_txtCompileStatus = new wxTextCtrl(box, wxID_ANY, wxEmptyString,
-                                      wxDefaultPosition,
-                                      wxDefaultSize,
-                                      wxTE_MULTILINE);
+  m_txtCompileStatus = constructTextBox(box, wxEmptyString, true, true, true);
   m_txtCompileStatus->SetFont(codeFontNormal);
   m_txtCompileStatus->SetEditable(false);
   m_txtCompileStatus->SetMinSize(wxSize(0, 80));

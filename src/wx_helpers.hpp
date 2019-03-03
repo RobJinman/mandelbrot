@@ -3,8 +3,8 @@
 wxStaticText* constructLabel(wxWindow* parent, const wxString& text);
 
 wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
-                             bool multiline = false,
-                             bool readOnly = false);
+                             bool multiline = false, bool readOnly = false,
+                             bool hScroll = false);
 
 std::string versionString();
 

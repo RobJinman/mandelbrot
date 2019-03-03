@@ -7,10 +7,18 @@ wxStaticText* constructLabel(wxWindow* parent, const wxString& text) {
 }
 
 wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
-                             bool multiline, bool readOnly) {
+                             bool multiline, bool readOnly, bool hScroll) {
+
+  long flags = 0;
+  if (multiline) {
+    flags |= wxTE_MULTILINE;
+  }
+  if (hScroll) {
+    flags |= wxHSCROLL;
+  }
 
   auto ctrl = new wxTextCtrl(parent, wxID_ANY, text, wxDefaultPosition,
-                             wxDefaultSize, multiline ? wxTE_MULTILINE : 0L);
+                             wxDefaultSize, flags);
 
   if (readOnly) {
     ctrl->SetEditable(false);
