@@ -12,8 +12,9 @@
     throw std::runtime_error("Mandelbrot not initialised"); \
   }
 
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
 using std::string;
-using std::vector;
 
 const std::map<string, string> PRESETS = {
   {
@@ -59,28 +60,31 @@ static const double INITIAL_YMAX = 2.0;
 Mandelbrot::Mandelbrot(int w, int h) {
   m_w = w;
   m_h = h;
-  m_vertShaderPath = "data/mandelbrot_vert_shader.glsl";
-  m_fragShaderPath = "data/mandelbrot_frag_shader.glsl";
+  m_mandelbrotVertShaderPath = "data/mandelbrot_vert_shader.glsl";
+  m_mandelbrotFragShaderPath = "data/mandelbrot_frag_shader.glsl";
+  m_texVertShaderPath = "data/textured_vert_shader.glsl";
+  m_texFragShaderPath = "data/textured_frag_shader.glsl";
 }
 
 void Mandelbrot::initialise() {
-  GLuint vertexArray;
-  GL_CHECK(glGenVertexArrays(1, &vertexArray));
-  GL_CHECK(glBindVertexArray(vertexArray));
+  GL_CHECK(glGenVertexArrays(1, &m_vao));
+  GL_CHECK(glBindVertexArray(m_vao));
 
   static const GLfloat vertexBufferData[] = {
-    -1.0f, -1.0f, 0.0f, // A
-    1.0f, -1.0f, 0.0f,  // B
-    1.0f, 1.0f, 0.0f,   // C
-    -1.0f, -1.0f, 0.0f, // A
-    1.0f, 1.0f, 0.0f,   // C
-    -1.0f, 1.0f, 0.0f,  // D
+    -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, // A
+    1.0f, -1.0f, 0.0f,    1.0f, 0.0f, // B
+    1.0f, 1.0f, 0.0f,     1.0f, 1.0f, // C
+    -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, // A
+    1.0f, 1.0f, 0.0f,     1.0f, 1.0f, // C
+    -1.0f, 1.0f, 0.0f,    0.0f, 1.0f  // D
   };
 
-  GL_CHECK(glGenBuffers(1, &m_program.vertexBufferId));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vertexBufferId));
+  GL_CHECK(glGenBuffers(1, &m_vbo));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vbo));
   GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData),
                         vertexBufferData, GL_STATIC_DRAW));
+
+  m_texProgram = compileProgram(m_texVertShaderPath, m_texFragShaderPath);
 
   string computeColourImpl = PRESETS.at(DEFAULT_COLOUR_SCHEME);
   compileProgram_(computeColourImpl);
@@ -116,26 +120,19 @@ void Mandelbrot::resize(int w, int h) {
 
   INIT_GUARD
 
+  GL_CHECK(glUseProgram(m_program.id));
   GL_CHECK(glViewport(0, 0, w, h));
 
   updateUniforms();
 }
 
-uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
-  INIT_EXCEPT
-
-  int prevW = m_w;
-  int prevH = m_h;
-  m_w = w;
-  m_h = h;
-  GL_CHECK(glViewport(0, 0, w, h));
-  updateUniforms();
-
+GLuint Mandelbrot::renderToTexture(int w, int h) {
   GLuint frameBufferName = 0;
   GL_CHECK(glGenFramebuffers(1, &frameBufferName));
   GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName));
 
-  GLuint texture = 0;
+  GLuint texture;
+
   GL_CHECK(glGenTextures(1, &texture));
   GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
 
@@ -156,7 +153,30 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
     GL_EXCEPTION("Error creating render target", status);
   }
 
-  draw();
+  render();
+
+  GL_CHECK(glDeleteFramebuffers(1, &frameBufferName));
+
+  return texture;
+}
+
+uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+  INIT_EXCEPT
+
+  GL_CHECK(glUseProgram(m_program.id));
+
+  int prevW = m_w;
+  int prevH = m_h;
+  m_w = w;
+  m_h = h;
+  GL_CHECK(glViewport(0, 0, w, h));
+  updateUniforms();
+
+  GLuint frameBufferName = 0;
+  GL_CHECK(glGenFramebuffers(1, &frameBufferName));
+  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName));
+
+  GLuint texture = renderToTexture(w, h);
 
   bytes = w * h * 3;
   uint8_t* data = new uint8_t[bytes];
@@ -172,6 +192,8 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
 }
 
 void Mandelbrot::initUniforms() {
+  GL_CHECK(glUseProgram(m_program.id));
+
   m_program.u.w = GL_CHECK(glGetUniformLocation(m_program.id, "u_w"));
   m_program.u.h = GL_CHECK(glGetUniformLocation(m_program.id, "u_h"));
   m_program.u.maxIterations = GL_CHECK(glGetUniformLocation(m_program.id,
@@ -200,7 +222,8 @@ void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
 }
 
 void Mandelbrot::compileProgram_(const std::string& computeColourImpl) {
-  m_program.id = compileProgram(m_vertShaderPath, m_fragShaderPath,
+  m_program.id = compileProgram(m_mandelbrotVertShaderPath,
+                                m_mandelbrotFragShaderPath,
                                 COMPUTE_COLOUR_IMPL_SEARCH_STRING,
                                 computeColourImpl);
   m_activeComputeColourImpl = computeColourImpl;
@@ -213,6 +236,8 @@ void Mandelbrot::setColourScheme(const string& presetName) {
 }
 
 void Mandelbrot::updateUniforms() {
+  GL_CHECK(glUseProgram(m_program.id));
+
   GL_CHECK(glUniform1f(m_program.u.w, m_w));
   GL_CHECK(glUniform1f(m_program.u.h, m_h));
   GL_CHECK(glUniform1i(m_program.u.maxIterations, m_maxIterations));
@@ -277,20 +302,51 @@ void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
   updateUniforms();
 }
 
-void Mandelbrot::draw() {
-  INIT_GUARD
+void Mandelbrot::drawFromTexture() {
+  GL_CHECK(glUseProgram(m_texProgram));
 
-  GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-  GL_CHECK(glUseProgram(m_program.id));
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_texture));
+
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vbo));
 
   GL_CHECK(glEnableVertexAttribArray(0));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vertexBufferId));
-  GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
+  GL_CHECK(glEnableVertexAttribArray(1));
+
+  GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+            sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
+  GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+            sizeof(GLfloat) * 5, BUFFER_OFFSET(sizeof(GLfloat) * 3)));
 
   GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
-  GL_CHECK(glDisableVertexAttribArray(0));
 
-  GL_CHECK(glFlush());
+  GL_CHECK(glDisableVertexAttribArray(0));
+  GL_CHECK(glDisableVertexAttribArray(1));
+}
+
+void Mandelbrot::draw(bool fromTexture) {
+  INIT_GUARD
+
+  if (!fromTexture) {
+    GL_CHECK(glDeleteTextures(1, &m_texture));
+    m_texture = renderToTexture(m_w, m_h);
+  }
+
+  drawFromTexture();
+}
+
+void Mandelbrot::render() {
+  GL_CHECK(glUseProgram(m_program.id));
+
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vbo));
+
+  GL_CHECK(glEnableVertexAttribArray(0));
+
+  GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+            sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
+
+  GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+  GL_CHECK(glDisableVertexAttribArray(0));
 }
 
 double Mandelbrot::computeMagnification() const {

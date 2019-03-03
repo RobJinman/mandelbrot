@@ -41,7 +41,7 @@ GLuint loadShaderWithSubstitution(const string& srcPath, GLuint type,
   if (infoLogLen > 0) {
     vector<char> errMsg(infoLogLen + 1);
     GL_CHECK(glGetShaderInfoLog(shaderId, infoLogLen, NULL, errMsg.data()));
-    throw ShaderException(errMsg.data());
+    throw ShaderException(srcPath, errMsg.data());
   }
 
   return shaderId;

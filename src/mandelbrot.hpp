@@ -15,7 +15,7 @@ public:
   void initialise();
 
   void resize(int w, int y);
-  void draw();
+  void draw(bool fromTexture);
 
   void zoom(double x, double y, double mag);
   void zoom(double x0, double y0, double x1, double y1);
@@ -51,9 +51,12 @@ private:
       GLuint ymin;
       GLuint ymax;
     } u;
-
-    GLuint vertexBufferId;
   } m_program;
+
+  GLuint m_texProgram;
+  GLuint m_texture = 0;
+  GLuint m_vao;
+  GLuint m_vbo;
 
   int m_w;
   int m_h;
@@ -63,11 +66,17 @@ private:
   double m_ymin;
   double m_ymax;
 
-  std::string m_vertShaderPath;
-  std::string m_fragShaderPath;
+  std::string m_mandelbrotVertShaderPath;
+  std::string m_mandelbrotFragShaderPath;
+  std::string m_texVertShaderPath;
+  std::string m_texFragShaderPath;
+
   std::string m_activeComputeColourImpl;
 
   void initUniforms();
   void updateUniforms();
+  void render();
+  void drawFromTexture();
   void compileProgram_(const std::string& computeColourImpl);
+  GLuint renderToTexture(int w, int h);
 };

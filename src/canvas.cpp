@@ -117,16 +117,6 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
 
   m_mouseDown = true;
   m_selectionRect = wxRect(e.GetPosition(), wxSize(0, 0));
-
-  auto sz = GetSize();
-
-  size_t nBytes = 0;
-  uint8_t* data = m_renderer.brot.renderToMainMemoryBuffer(sz.x, sz.y, nBytes);
-
-  wxImage image(sz.x, sz.y, data);
-  image = image.Mirror(false);
-
-  m_background.reset(new wxBitmap(image));
 }
 
 void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
@@ -141,6 +131,8 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
     m_renderer.brot.zoom(x0, y0, x1, y1);
     refresh();
   }
+
+  m_renderer.drawSelectionRect(0, 0, 0, 0);
 }
 
 void Canvas::onMouseMove(wxMouseEvent&) {
@@ -232,16 +224,15 @@ void Canvas::render() {
   SetCurrent(*m_context);
 
   if (m_mouseDown) {
-    int x0 = m_selectionRect.x;
-    int y0 = m_selectionRect.y;
-    int x1 = x0 + m_selectionRect.width;
-    int y1 = y0 + m_selectionRect.height;
+    int x = m_selectionRect.x;
+    int y = m_selectionRect.y;
+    int w = m_selectionRect.width;
+    int h = m_selectionRect.height;
 
-    m_renderer.drawSelectionRect(x0, y0, x1, y1);
+    m_renderer.drawSelectionRect(x, y, w, h);
   }
-  else {
-    m_renderer.brot.draw();
-  }
+
+  m_renderer.draw(m_mouseDown);
 
   measureFrameRate();
 

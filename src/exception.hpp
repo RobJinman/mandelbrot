@@ -43,6 +43,10 @@
 
 class ShaderException : public std::runtime_error {
 public:
+  ShaderException(const std::string& path, const std::string& errorOutput)
+    : runtime_error(std::string("Shader failed to compile (") + path + ")"),
+      m_errorOutput(errorOutput) {}
+
   ShaderException(const std::string& errorOutput)
     : runtime_error("Shader failed to compile"),
       m_errorOutput(errorOutput) {}

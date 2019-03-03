@@ -1,6 +1,6 @@
 #version 330 core
 
-uniform u_colour;
+uniform vec3 u_colour;
 
 layout(location = 0) out vec3 out_colour;
 
