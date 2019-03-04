@@ -473,14 +473,14 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
   m_txtZoomPerFrame->GetValue().ToDouble(&zoomPerFrame);
   m_canvas->setZoomPerFrame(zoomPerFrame);
 
-  m_canvas->refresh();
+  m_canvas->render();
 }
 
 void MainWindow::applyColourScheme() {
   try {
     std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
     m_renderer->setColourSchemeImpl(code);
-    m_canvas->refresh();
+    m_canvas->render();
     m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
   }
   catch (const ShaderException& e) {

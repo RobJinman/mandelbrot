@@ -17,14 +17,13 @@ public:
   Canvas(wxWindow* parent, const wxGLAttributes& glAttrs, Renderer& renderer,
          std::function<void()> onRender);
 
-  void refresh();
+  void render();
   void makeGlContextCurrent();
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
   void setZoomAmount(double zoom);
 
 private:
-  void render();
   void measureFrameRate();
   void centreCursor();
   wxPoint getCursorPos() const;
