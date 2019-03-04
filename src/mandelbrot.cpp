@@ -179,10 +179,6 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
   GL_CHECK(glViewport(0, 0, w, h));
   updateUniforms();
 
-  GLuint frameBufferName = 0;
-  GL_CHECK(glGenFramebuffers(1, &frameBufferName));
-  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, frameBufferName));
-
   GLuint texture = renderToTexture(w, h);
 
   bytes = w * h * 3;
@@ -190,8 +186,6 @@ uint8_t* Mandelbrot::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
 
   GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
   GL_CHECK(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
-
-  GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
   resize(prevW, prevH);
 
