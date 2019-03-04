@@ -79,9 +79,14 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
 
+  wxFont font(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
+                  wxFONTWEIGHT_NORMAL);
+
   auto txtInfo = new wxRichTextCtrl(box, wxID_ANY, wxEmptyString,
                                     wxDefaultPosition, wxDefaultSize,
                                     wxVSCROLL | wxBORDER_NONE | wxWANTS_CHARS);
+
+  txtInfo->SetFont(font);
 
   auto addHeading = [txtInfo](const wxString& text) {
     txtInfo->BeginBold();
@@ -115,11 +120,11 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   addText("Click and drag the canvas to zoom.");
   txtInfo->Newline();
   addHeading(wxGetTranslation("Controls"));
-  addText("R\t\t", false, false, true);
+  addText("R       ", false, false, true);
   addText("Reset view");
-  addText("Z\t\t", false, false, true);
+  addText("Z       ", false, false, true);
   addText("Toggle Fly-Through mode");
-  addText("SPACE\t", false, false, true);
+  addText("SPACE   ", false, false, true);
   addText("Zoom on centre");
 
   vbox->AddSpacer(10);

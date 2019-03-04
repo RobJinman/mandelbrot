@@ -54,7 +54,10 @@ if (PLATFORM_LINUX)
                        libwx_gtk2u_core-3.1
                        libwx_baseu-3.1)
 elseif (PLATFORM_WINDOWS)
-  set(VENDOR_LIB_NAMES libGLEW
+  set(VENDOR_LIB_NAMES libglew32
+                       wxmsw31u_richtext
+                       wxmsw31u_html
+                       wxbase31u_xml
                        wxmsw31u_gl
                        wxmsw31u_core
                        wxpng
@@ -109,7 +112,7 @@ elseif (PLATFORM_WINDOWS)
   set(PLATFORM_COMPILE_FLAGS_COMMON -DGLEW_STATIC -DwxUSE_OLE)
   set(PLATFORM_COMPILE_FLAGS_RELEASE)
   set(PLATFORM_COMPILE_FLAGS_DEBUG)
-  set(PLATFORM_LINK_FLAGS /SUBSYSTEM:WINDOWS /ENTRY:WinMainCRTStartup)
+  set(PLATFORM_LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:WinMainCRTStartup")
 
   include_directories(
     "${VENDOR_DIR}/lib/vc_x64_lib/mswu"

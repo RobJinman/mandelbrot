@@ -193,7 +193,7 @@ void Canvas::measureFrameRate() {
   ++m_frame;
 }
 
-void Canvas::onPaint(wxPaintEvent&) {
+void Canvas::onPaint(wxPaintEvent& e) {
   if (!m_renderer.isInitialised()) {
     SetCurrent(*m_context);
     m_renderer.initialise();
@@ -201,9 +201,13 @@ void Canvas::onPaint(wxPaintEvent&) {
   }
 
   render();
+
+  e.Skip();
 }
 
 void Canvas::refresh() {
+  render();
+
   Refresh();
   Update();
 }
