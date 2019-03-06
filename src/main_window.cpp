@@ -19,6 +19,7 @@ static std::string formatDouble(double d) {
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
+  EVT_CLOSE(MainWindow::onClose)
 wxEND_EVENT_TABLE()
 
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
@@ -46,6 +47,17 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 
   CreateStatusBar();
   SetStatusText(wxEmptyString);
+}
+
+void MainWindow::onClose(wxCloseEvent& e) {
+  m_quitting = true;
+
+  if (m_doingExport) {
+    e.Veto();
+  }
+  else {
+    e.Skip();
+  }
 }
 
 void MainWindow::makeGlContextCurrent() {
@@ -457,28 +469,38 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   long h = 0;
   m_txtExportHeight->GetValue().ToLong(&h);
 
-  m_exportFilePath = fileDialog.GetPath();
+  wxString exportFilePath = fileDialog.GetPath();
 
   m_exportProgressBar->Show();
 
+  m_doingExport = true;
   m_renderer->renderToMainMemoryBuffer(w, h);
 
   const OfflineRenderStatus& status = m_renderer->continueOfflineRender();
 
   while (status.progress != 100) {
     m_exportProgressBar->SetValue(status.progress);
-    wxSafeYield(this);
+    wxYield();
+
+    if (m_quitting) {
+      m_doingExport = false;
+      Close();
+      return;
+    }
+
     m_renderer->continueOfflineRender();
   }
+
+  m_doingExport = false;
 
   wxImage image(status.w, status.h, status.data);
   image = image.Mirror(false);
 
-  image.SaveFile(m_exportFilePath, wxBITMAP_TYPE_BMP);
+  image.SaveFile(exportFilePath, wxBITMAP_TYPE_BMP);
 
   m_exportProgressBar->Hide();
 
-  m_canvas->render();
+  m_canvas->refresh();
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
@@ -498,14 +520,14 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
   m_txtZoomPerFrame->GetValue().ToDouble(&zoomPerFrame);
   m_canvas->setZoomPerFrame(zoomPerFrame);
 
-  m_canvas->render();
+  m_canvas->refresh();
 }
 
 void MainWindow::applyColourScheme() {
   try {
     std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
     m_renderer->setColourSchemeImpl(code);
-    m_canvas->render();
+    m_canvas->refresh();
     m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
   }
   catch (const ShaderException& e) {
@@ -533,7 +555,7 @@ void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
 }
 
 void MainWindow::onExit(wxCommandEvent&) {
-  Close(true);
+  Close();
 }
 
 void MainWindow::onAbout(wxCommandEvent&) {

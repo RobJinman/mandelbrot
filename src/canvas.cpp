@@ -72,7 +72,7 @@ void Canvas::onTick(wxTimerEvent&) {
     m_renderer.zoom(p.x, p.y, m_zoomPerFrame);
   }
 
-  render();
+  refresh();
 }
 
 void Canvas::onResize(wxSizeEvent& e) {
@@ -84,7 +84,7 @@ void Canvas::resize() {
   auto sz = GetSize();
   m_renderer.resize(sz.x, sz.y);
 
-  render();
+  refresh();
 }
 
 void Canvas::centreCursor() {
@@ -137,7 +137,7 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
   }
 
   m_renderer.drawSelectionRect(0, 0, 0, 0);
-  render();
+  refresh();
 }
 
 void Canvas::onMouseMove(wxMouseEvent&) {
@@ -152,7 +152,7 @@ void Canvas::onMouseMove(wxMouseEvent&) {
 
     m_selectionRect.SetSize(sz);
 
-    render();
+    refresh();
   }
 }
 
@@ -172,12 +172,12 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
   }
   else if (key == 'R') {
     m_renderer.resetZoom();
-    render();
+    refresh();
   }
   else if (key == WXK_SPACE) {
     auto sz = GetClientSize();
     m_renderer.zoom(sz.x / 2, sz.y / 2, m_zoomAmount);
-    render();
+    refresh();
   }
 }
 
@@ -191,18 +191,6 @@ void Canvas::measureFrameRate() {
     m_t = t_;
   }
   ++m_frame;
-}
-
-void Canvas::onPaint(wxPaintEvent& e) {
-  if (!m_renderer.isInitialised()) {
-    SetCurrent(*m_context);
-    m_renderer.initialise();
-    resize();
-  }
-
-  render();
-
-  e.Skip();
 }
 
 wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
@@ -225,6 +213,22 @@ wxPoint Canvas::dampenCursorPos(const wxPoint& p) const {
 
 void Canvas::makeGlContextCurrent() {
   SetCurrent(*m_context);
+}
+
+void Canvas::refresh() {
+  Refresh();
+}
+
+void Canvas::onPaint(wxPaintEvent&) {
+  wxPaintDC dc(this);
+
+  if (!m_renderer.isInitialised()) {
+    SetCurrent(*m_context);
+    m_renderer.initialise();
+    resize();
+  }
+
+  render();
 }
 
 void Canvas::render() {

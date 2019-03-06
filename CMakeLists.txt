@@ -99,7 +99,7 @@ if (PLATFORM_LINUX)
                                     -D__WXGTK__
                                     -Wall -Wextra)
   set(PLATFORM_COMPILE_FLAGS_RELEASE -O3)
-  set(PLATFORM_COMPILE_FLAGS_DEBUG -g)
+  set(PLATFORM_COMPILE_FLAGS_DEBUG -g -O0)
 
   set(PLATFORM_LINK_FLAGS)
 

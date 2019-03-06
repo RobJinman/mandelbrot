@@ -58,8 +58,6 @@ static const double INITIAL_XMAX = 1.5;
 static const double INITIAL_YMIN = -2.0;
 static const double INITIAL_YMAX = 2.0;
 
-static const int RENDER_STRIP_H = 10;
-
 OfflineRenderStatus::OfflineRenderStatus(int w, int h, int stripH)
   : w(w),
     h(h),
@@ -117,7 +115,6 @@ void Mandelbrot::initialise() {
 }
 
 void Mandelbrot::reset() {
-  m_renderParams.maxIterations = DEFAULT_MAX_ITERATIONS;
   m_renderParams.xmin = INITIAL_XMIN;
   m_renderParams.ymin = INITIAL_YMIN;
   m_renderParams.ymax = INITIAL_YMAX;
@@ -239,8 +236,10 @@ const OfflineRenderStatus& Mandelbrot::continueOfflineRender() {
 void Mandelbrot::renderToMainMemoryBuffer(int w, int h) {
   INIT_EXCEPT
 
+  int renderStripH = std::min(h, 50);
+
   m_renderParamsBackup = m_renderParams;
-  m_offlineRenderStatus = OfflineRenderStatus(w, h, RENDER_STRIP_H);
+  m_offlineRenderStatus = OfflineRenderStatus(w, h, renderStripH);
 
   size_t bytes = w * h * 3;
   m_offlineRenderStatus.data = new uint8_t[bytes];
