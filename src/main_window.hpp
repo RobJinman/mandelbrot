@@ -48,6 +48,7 @@ private:
   void onCanvasLoseFocus(wxFocusEvent& e);
 
   std::unique_ptr<Renderer> m_renderer;
+  wxString m_exportFilePath;
   wxSplitterWindow* m_splitter;
   wxBoxSizer* m_vbox;
   wxNotebook* m_rightPanel;
@@ -61,6 +62,7 @@ private:
   wxTextCtrl* m_txtCompileStatus;
   wxTextCtrl* m_txtExportWidth;
   wxTextCtrl* m_txtExportHeight;
+  wxGauge* m_exportProgressBar;
 
   struct {
     wxStaticText* txtMagLevel;

@@ -241,7 +241,12 @@ double Renderer::computeMagnification() const {
   return m_brot.computeMagnification();
 }
 
-uint8_t* Renderer::renderToMainMemoryBuffer(int w, int h, size_t& bytes) {
+void Renderer::renderToMainMemoryBuffer(int w, int h) {
   m_fnMakeGlContextCurrent();
-  return m_brot.renderToMainMemoryBuffer(w, h, bytes);
+  m_brot.renderToMainMemoryBuffer(w, h);
+}
+
+const OfflineRenderStatus& Renderer::continueOfflineRender() {
+  m_fnMakeGlContextCurrent();
+  return m_brot.continueOfflineRender();
 }

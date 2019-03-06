@@ -8,6 +8,25 @@ extern const std::map<std::string, std::string> PRESETS;
 const int DEFAULT_MAX_ITERATIONS = 100;
 const std::string DEFAULT_COLOUR_SCHEME = "coloured";
 
+class OfflineRenderStatus {
+  friend class Mandelbrot;
+
+public:
+  OfflineRenderStatus() {}
+  OfflineRenderStatus(int w, int h, int stripH);
+
+  int w = 0;
+  int h = 0;
+  int progress = 0;
+  uint8_t* data = nullptr;
+
+private:
+  int stripsDrawn = 0;
+  int stripH = 0;
+  int totalStrips = 0;
+  int finalStripH = 0;
+};
+
 class Mandelbrot {
 public:
   Mandelbrot(int W, int H);
@@ -33,13 +52,14 @@ public:
 
   double computeMagnification() const;
 
-  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
+  void renderToMainMemoryBuffer(int w, int h);
+  const OfflineRenderStatus& continueOfflineRender();
 
 private:
   bool m_initialised = false;
 
   struct {
-    GLuint id;
+    GLuint id = 0;
 
     // Uniforms
     struct {
@@ -53,18 +73,22 @@ private:
     } u;
   } m_program;
 
-  GLuint m_texProgram;
+  GLuint m_texProgram = 0;
   GLuint m_texture = 0;
-  GLuint m_vao;
-  GLuint m_vbo;
+  GLuint m_vao = 0;
+  GLuint m_vbo = 0;
 
-  int m_w;
-  int m_h;
-  int m_maxIterations;
-  double m_xmin;
-  double m_xmax;
-  double m_ymin;
-  double m_ymax;
+  OfflineRenderStatus m_offlineRenderStatus;
+
+  struct {
+    int w;
+    int h;
+    int maxIterations;
+    double xmin;
+    double xmax;
+    double ymin;
+    double ymax;
+  } m_renderParams, m_renderParamsBackup;
 
   std::string m_mandelbrotVertShaderPath;
   std::string m_mandelbrotFragShaderPath;
@@ -79,4 +103,5 @@ private:
   void drawFromTexture();
   void compileProgram_(const std::string& computeColourImpl);
   GLuint renderToTexture(int w, int h);
+  void renderStripToMainMemoryBuffer(uint8_t* buffer);
 };

@@ -6,6 +6,7 @@
 #include "config.hpp"
 #include "exception.hpp"
 #include "wx_helpers.hpp"
+#include "utils.hpp"
 
 static const int DEFAULT_EXPORT_HEIGHT = 1000;
 
@@ -280,7 +281,7 @@ wxStaticBox* MainWindow::constructDataPanel(wxWindow* parent) {
 wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
-  auto grid = new wxFlexGridSizer(2);
+  auto grid = new wxGridBagSizer;
   box->SetSizer(grid);
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
@@ -297,14 +298,23 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   auto btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
   btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
 
-  grid->Add(lblWidth, 0, wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtExportWidth, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblHeight, 0, wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtExportHeight, 0, wxEXPAND | wxRIGHT, 10);
-  grid->AddSpacer(1);
-  grid->Add(btnExport, 0, wxEXPAND | wxRIGHT, 10);
+  m_exportProgressBar = new wxGauge(box, wxID_ANY, 100);
+
+  grid->Add(lblWidth, wxGBPosition(0, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtExportWidth, wxGBPosition(1, 0), wxGBSpan(1, 1),
+            wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblHeight, wxGBPosition(0, 1), wxGBSpan(1, 1), wxLEFT | wxRIGHT,
+            10);
+  grid->Add(m_txtExportHeight, wxGBPosition(1, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxRIGHT, 10);
+  grid->Add(btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
+            10);
+  grid->Add(m_exportProgressBar, wxGBPosition(3, 0), wxGBSpan(2, 1),
+            wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
   grid->AddGrowableCol(0);
+
+  m_exportProgressBar->Hide();
 
   return box;
 }
@@ -447,13 +457,28 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   long h = 0;
   m_txtExportHeight->GetValue().ToLong(&h);
 
-  size_t nBytes = 0;
-  uint8_t* data = m_renderer->renderToMainMemoryBuffer(w, h, nBytes);
+  m_exportFilePath = fileDialog.GetPath();
 
-  wxImage image(w, h, data);
+  m_exportProgressBar->Show();
+
+  m_renderer->renderToMainMemoryBuffer(w, h);
+
+  const OfflineRenderStatus& status = m_renderer->continueOfflineRender();
+
+  while (status.progress != 100) {
+    m_exportProgressBar->SetValue(status.progress);
+    wxSafeYield(this);
+    m_renderer->continueOfflineRender();
+  }
+
+  wxImage image(status.w, status.h, status.data);
   image = image.Mirror(false);
 
-  image.SaveFile(fileDialog.GetPath(), wxBITMAP_TYPE_BMP);
+  image.SaveFile(m_exportFilePath, wxBITMAP_TYPE_BMP);
+
+  m_exportProgressBar->Hide();
+
+  m_canvas->render();
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {

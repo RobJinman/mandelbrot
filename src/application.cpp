@@ -1,6 +1,6 @@
 #include "application.hpp"
 #include "main_window.hpp"
-#include "wx_helpers.hpp"
+#include "utils.hpp"
 #include "exception.hpp"
 
 static void doWithLogging(std::function<void()> fn) {

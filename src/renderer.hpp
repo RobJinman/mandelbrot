@@ -28,7 +28,8 @@ public:
 
   double computeMagnification() const;
 
-  uint8_t* renderToMainMemoryBuffer(int w, int h, size_t& bytes);
+  void renderToMainMemoryBuffer(int w, int h);
+  const OfflineRenderStatus& continueOfflineRender();
 
 private:
   bool m_initialised = false;

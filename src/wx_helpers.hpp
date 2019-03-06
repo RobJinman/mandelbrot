@@ -6,7 +6,5 @@ wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
                              bool multiline = false, bool readOnly = false,
                              bool hScroll = false);
 
-std::string versionString();
-
 std::ostream& operator<<(std::ostream& os, const wxPoint& p);
 std::ostream& operator<<(std::ostream& os, const wxSize& sz);
