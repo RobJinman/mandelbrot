@@ -35,6 +35,7 @@ private:
   bool m_initialised = false;
   double m_w;
   double m_h;
+  bool m_selectionRectVisible = false;
   std::function<void()> m_fnMakeGlContextCurrent;
 
   Mandelbrot m_brot;

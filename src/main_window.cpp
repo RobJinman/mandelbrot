@@ -182,15 +182,17 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   m_txtCompileStatus->SetEditable(false);
   m_txtCompileStatus->SetMinSize(wxSize(0, 80));
 
-  auto btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
-  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyColourSchemeClick, this);
+  m_btnApplyColourScheme = new wxButton(box, wxID_ANY,
+                                        wxGetTranslation("Apply"));
+  m_btnApplyColourScheme->Bind(wxEVT_BUTTON,
+                               &MainWindow::onApplyColourSchemeClick, this);
 
   vbox->AddSpacer(10);
   vbox->Add(cboScheme, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   vbox->Add(txtShaderCodePre, 0, wxLEFT | wxRIGHT, 10);
   vbox->Add(m_txtComputeColourImpl, 2, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(txtShaderCodePost, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
+  vbox->Add(m_btnApplyColourScheme, 0, wxALIGN_RIGHT | wxRIGHT, 10);
   vbox->Add(m_txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   return box;
@@ -309,8 +311,8 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   m_txtExportHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   m_txtExportHeight->Bind(wxEVT_TEXT, &MainWindow::onExportHeightChange, this);
 
-  auto btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
-  btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
+  m_btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
+  m_btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
 
   m_exportProgressBar = new wxGauge(box, wxID_ANY, 100);
 
@@ -321,7 +323,7 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
             10);
   grid->Add(m_txtExportHeight, wxGBPosition(1, 1), wxGBSpan(1, 1),
             wxEXPAND | wxRIGHT, 10);
-  grid->Add(btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
+  grid->Add(m_btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
             10);
   grid->Add(m_exportProgressBar, wxGBPosition(3, 0), wxGBSpan(2, 1),
             wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
@@ -348,15 +350,15 @@ void MainWindow::constructParamsPage() {
   auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
   m_rightPanel->AddPage(page, wxGetTranslation("Parameters"));
 
-  auto btnApply = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
-  btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
+  m_btnApplyParams = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
+  m_btnApplyParams->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   vbox->Add(constructRenderParamsPanel(page), 1,
             wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
   vbox->Add(constructFlyThroughParamsPanel(page), 1,
             wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
-  vbox->Add(btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
+  vbox->Add(m_btnApplyParams, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   page->SetSizer(vbox);
 }
@@ -458,6 +460,54 @@ void MainWindow::onRender() {
   m_dataFields.txtYMax->SetLabel(formatDouble(m_renderer->getYMax()));
 }
 
+uint8_t* MainWindow::beginExport(int w, int h) {
+  m_exportProgressBar->Show();
+  m_btnExport->Disable();
+  m_btnApplyParams->Disable();
+  m_btnApplyColourScheme->Disable();
+  m_canvas->Disable();
+
+  m_doingExport = true;
+  m_renderer->renderToMainMemoryBuffer(w, h);
+
+  const OfflineRenderStatus& status = m_renderer->continueOfflineRender();
+
+  while (status.progress != 100) {
+    m_exportProgressBar->SetValue(status.progress);
+    wxYield();
+
+    if (m_quitting) {
+      m_doingExport = false;
+      Close();
+      return nullptr;
+    }
+
+    m_renderer->continueOfflineRender();
+  }
+
+  return status.data;
+}
+
+void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
+                           uint8_t* data) {
+  m_doingExport = false;
+
+  if (data != nullptr) {
+    wxImage image(w, h, data);
+    image = image.Mirror(false);
+
+    image.SaveFile(exportFilePath, wxBITMAP_TYPE_BMP);
+  }
+
+  m_exportProgressBar->Hide();
+  m_btnExport->Enable();
+  m_btnApplyParams->Enable();
+  m_btnApplyColourScheme->Enable();
+  m_canvas->Enable();
+
+  m_canvas->refresh();
+}
+
 void MainWindow::onExportClick(wxCommandEvent&) {
   wxFileDialog fileDialog(this, wxGetTranslation("Save as BMP image"), "",
                           "", "BMP files (*.bmp)|*.bmp", wxFD_SAVE);
@@ -473,36 +523,8 @@ void MainWindow::onExportClick(wxCommandEvent&) {
 
   wxString exportFilePath = fileDialog.GetPath();
 
-  m_exportProgressBar->Show();
-
-  m_doingExport = true;
-  m_renderer->renderToMainMemoryBuffer(w, h);
-
-  const OfflineRenderStatus& status = m_renderer->continueOfflineRender();
-
-  while (status.progress != 100) {
-    m_exportProgressBar->SetValue(status.progress);
-    wxYield();
-
-    if (m_quitting) {
-      m_doingExport = false;
-      Close();
-      return;
-    }
-
-    m_renderer->continueOfflineRender();
-  }
-
-  m_doingExport = false;
-
-  wxImage image(status.w, status.h, status.data);
-  image = image.Mirror(false);
-
-  image.SaveFile(exportFilePath, wxBITMAP_TYPE_BMP);
-
-  m_exportProgressBar->Hide();
-
-  m_canvas->refresh();
+  uint8_t* data = beginExport(w, h);
+  endExport(exportFilePath, w, h, data);
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {

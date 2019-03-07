@@ -88,14 +88,16 @@ void Renderer::draw(bool fromTexture) {
 
   m_brot.draw(fromTexture);
 
-  GL_CHECK(glUseProgram(m_program.id));
+  if (m_selectionRectVisible) {
+    GL_CHECK(glUseProgram(m_program.id));
 
-  GL_CHECK(glEnableVertexAttribArray(0));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vbo));
-  GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vbo));
+    GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-  GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 4 * VERTS_PER_RECT));
-  GL_CHECK(glDisableVertexAttribArray(0));
+    GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 4 * VERTS_PER_RECT));
+    GL_CHECK(glDisableVertexAttribArray(0));
+  }
 
   GL_CHECK(glFlush());
 }
@@ -181,6 +183,8 @@ void Renderer::makeSelectionRect(double x, double y, double w, double h) {
 void Renderer::drawSelectionRect(double x, double y, double w, double h) {
   INIT_GUARD
   m_fnMakeGlContextCurrent();
+
+  m_selectionRectVisible = w > 0 && h > 0;
 
   makeSelectionRect(x, y, w, h);
 

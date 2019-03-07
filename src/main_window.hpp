@@ -33,6 +33,8 @@ private:
   void applyColourScheme();
   void adjustExportSize(bool adjustWidth);
   void makeGlContextCurrent();
+  uint8_t* beginExport(int w, int h);
+  void endExport(const wxString& exportFilePath, int w, int h, uint8_t* data);
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
@@ -60,10 +62,13 @@ private:
   wxTextCtrl* m_txtZoomAmount;
   wxTextCtrl* m_txtTargetFps;
   wxTextCtrl* m_txtZoomPerFrame;
+  wxButton* m_btnApplyParams;
   wxTextCtrl* m_txtComputeColourImpl;
   wxTextCtrl* m_txtCompileStatus;
+  wxButton* m_btnApplyColourScheme;
   wxTextCtrl* m_txtExportWidth;
   wxTextCtrl* m_txtExportHeight;
+  wxButton* m_btnExport;
   wxGauge* m_exportProgressBar;
 
   struct {
