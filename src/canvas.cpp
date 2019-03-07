@@ -174,9 +174,14 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
     m_renderer.resetZoom();
     refresh();
   }
-  else if (key == WXK_SPACE) {
+  else if (key == 'I') {
     auto sz = GetClientSize();
     m_renderer.zoom(sz.x / 2, sz.y / 2, m_zoomAmount);
+    refresh();
+  }
+  else if (key == 'O') {
+    auto sz = GetClientSize();
+    m_renderer.zoom(sz.x / 2, sz.y / 2, 1.0 / m_zoomAmount);
     refresh();
   }
 }

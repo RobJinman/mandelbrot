@@ -133,12 +133,14 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   addText("Click and drag the canvas to zoom.");
   txtInfo->Newline();
   addHeading(wxGetTranslation("Controls"));
-  addText("R       ", false, false, true);
+  addText("R   ", false, false, true);
   addText("Reset view");
-  addText("Z       ", false, false, true);
+  addText("Z   ", false, false, true);
   addText("Toggle Fly-Through mode");
-  addText("SPACE   ", false, false, true);
-  addText("Zoom on centre");
+  addText("I   ", false, false, true);
+  addText("Zoom in");
+  addText("O   ", false, false, true);
+  addText("Zoom out");
 
   vbox->AddSpacer(10);
   vbox->Add(txtInfo, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
