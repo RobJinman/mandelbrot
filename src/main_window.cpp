@@ -8,7 +8,19 @@
 #include "wx_helpers.hpp"
 #include "utils.hpp"
 
-static const int DEFAULT_EXPORT_HEIGHT = 1000;
+static const long DEFAULT_EXPORT_HEIGHT = 1000;
+static const long MIN_EXPORT_WIDTH = 10;
+static const long MAX_EXPORT_WIDTH = 10000;
+static const long MIN_EXPORT_HEIGHT = 10;
+static const long MAX_EXPORT_HEIGHT = 10000;
+static const long MIN_ITERATIONS = 1;
+static const long MAX_ITERATIONS = 10000;
+static const double MIN_ZOOM_AMOUNT = 1.0;
+static const double MAX_ZOOM_AMOUNT = 1000.0;
+static const double MIN_TARGET_FPS = 0.1;
+static const double MAX_TARGET_FPS = 60.0;
+static const double MIN_ZOOM_PER_FRAME = 0.0001;
+static const double MAX_ZOOM_PER_FRAME = 10.0;
 
 static std::string formatDouble(double d) {
   std::stringstream ss;
@@ -515,11 +527,11 @@ void MainWindow::onExportClick(wxCommandEvent&) {
     return;
   }
 
-  long w = 0;
-  m_txtExportWidth->GetValue().ToLong(&w);
+  long w = getBoundedValue<long>(*m_txtExportWidth, MIN_EXPORT_WIDTH,
+                                 MAX_EXPORT_WIDTH);
 
-  long h = 0;
-  m_txtExportHeight->GetValue().ToLong(&h);
+  long h = getBoundedValue<long>(*m_txtExportHeight, MIN_EXPORT_HEIGHT,
+                                 MAX_EXPORT_HEIGHT);
 
   wxString exportFilePath = fileDialog.GetPath();
 
@@ -528,20 +540,21 @@ void MainWindow::onExportClick(wxCommandEvent&) {
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
-  long maxI = 0;
-  m_txtMaxIterations->GetValue().ToLong(&maxI);
+  long maxI = getBoundedValue<long>(*m_txtMaxIterations, MIN_ITERATIONS,
+                                    MAX_ITERATIONS);
   m_renderer->setMaxIterations(maxI);
 
-  double zoomAmount = 1.0;
-  m_txtZoomAmount->GetValue().ToDouble(&zoomAmount);
+  double zoomAmount = getBoundedValue<double>(*m_txtZoomAmount, MIN_ZOOM_AMOUNT,
+                                              MAX_ZOOM_AMOUNT);
   m_canvas->setZoomAmount(zoomAmount);
 
-  double targetFps = 0;
-  m_txtTargetFps->GetValue().ToDouble(&targetFps);
+  double targetFps = getBoundedValue<double>(*m_txtTargetFps, MIN_TARGET_FPS,
+                                             MAX_TARGET_FPS);
   m_canvas->setTargetFps(targetFps);
 
-  double zoomPerFrame = 0;
-  m_txtZoomPerFrame->GetValue().ToDouble(&zoomPerFrame);
+  double zoomPerFrame = getBoundedValue<double>(*m_txtZoomPerFrame,
+                                                MIN_ZOOM_PER_FRAME,
+                                                MAX_ZOOM_PER_FRAME);
   m_canvas->setZoomPerFrame(zoomPerFrame);
 
   m_canvas->refresh();

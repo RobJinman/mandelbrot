@@ -25,6 +25,20 @@ wxTextCtrl* constructTextBox(wxWindow* parent, const wxString& text,
   return ctrl;
 }
 
+template<>
+long getValue(const wxTextCtrl& textBox) {
+  long value = 0;
+  textBox.GetValue().ToLong(&value);
+  return value;
+}
+
+template<>
+double getValue(const wxTextCtrl& textBox) {
+  double value = 0;
+  textBox.GetValue().ToDouble(&value);
+  return value;
+}
+
 std::ostream& operator<<(std::ostream& os, const wxPoint& p) {
   os << "(" << p.x << ", " << p.y << ")";
   return os;
