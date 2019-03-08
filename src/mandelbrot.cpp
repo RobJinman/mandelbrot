@@ -70,16 +70,16 @@ OfflineRenderStatus::OfflineRenderStatus(int w, int h, int stripH)
   finalStripH = stripH + (h % stripH);
 }
 
-Mandelbrot::Mandelbrot(int w, int h) {
-  m_renderParams.w = w;
-  m_renderParams.h = h;
+Mandelbrot::Mandelbrot() {
+  m_renderParams.w = 100;
+  m_renderParams.h = 100;
   m_mandelbrotVertShaderPath = "data/mandelbrot_vert_shader.glsl";
   m_mandelbrotFragShaderPath = "data/mandelbrot_frag_shader.glsl";
   m_texVertShaderPath = "data/textured_vert_shader.glsl";
   m_texFragShaderPath = "data/textured_frag_shader.glsl";
 }
 
-void Mandelbrot::initialise() {
+void Mandelbrot::initialise(int w, int h) {
   GL_CHECK(glGenVertexArrays(1, &m_vao));
   GL_CHECK(glBindVertexArray(m_vao));
 
@@ -112,6 +112,8 @@ void Mandelbrot::initialise() {
   initUniforms();
 
   m_initialised = true;
+
+  resize(w, h);
 }
 
 void Mandelbrot::reset() {

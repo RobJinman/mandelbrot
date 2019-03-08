@@ -29,9 +29,9 @@ private:
 
 class Mandelbrot {
 public:
-  Mandelbrot(int W, int H);
+  Mandelbrot();
 
-  void initialise();
+  void initialise(int w, int h);
 
   void resize(int w, int y);
   void draw(bool fromTexture);

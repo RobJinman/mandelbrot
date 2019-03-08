@@ -25,7 +25,7 @@ wxEND_EVENT_TABLE()
 MainWindow::MainWindow(const wxString& title, const wxSize& size)
   : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, size) {
 
-  m_renderer.reset(new Renderer(400, 400, [this]() {
+  m_renderer.reset(new Renderer([this]() {
     makeGlContextCurrent();
   }));
 

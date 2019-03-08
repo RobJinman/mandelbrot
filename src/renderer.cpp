@@ -15,18 +15,20 @@ static const int FLOATS_PER_RECT = VERTS_PER_RECT * FLOATS_PER_VERT;
 
 static const GLfloat COLOUR[3] = { 0.0f, 1.0f, 0.0f };
 
-Renderer::Renderer(int w, int h, std::function<void()> fnMakeGlContextCurrent)
-  : m_fnMakeGlContextCurrent(fnMakeGlContextCurrent),
-    m_brot(w, h) {
+Renderer::Renderer(std::function<void()> fnMakeGlContextCurrent)
+  : m_fnMakeGlContextCurrent(fnMakeGlContextCurrent) {
 
-  m_w = w;
-  m_h = h;
+  m_w = 100;
+  m_h = 100;
 
   m_vertShaderPath = "data/simple_vert_shader.glsl";
   m_fragShaderPath = "data/simple_frag_shader.glsl";
 }
 
-void Renderer::initialise() {
+void Renderer::initialise(int w, int h) {
+  m_w = w;
+  m_h = h;
+
   glewExperimental = GL_TRUE;
   GLenum result = glewInit();
   if (result != GLEW_OK) {
@@ -52,7 +54,7 @@ void Renderer::initialise() {
   GL_CHECK(glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0));
   GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
 
-  m_brot.initialise();
+  m_brot.initialise(w, h);
 
   m_program.id = compileProgram(m_vertShaderPath, m_fragShaderPath);
   initUniforms();

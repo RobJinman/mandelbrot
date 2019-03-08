@@ -223,10 +223,6 @@ void Canvas::makeGlContextCurrent() {
 void Canvas::refresh() {
   Refresh();
   Update();
-#ifdef WIN32
-  Refresh();
-  Update();
-#endif
 }
 
 void Canvas::onPaint(wxPaintEvent&) {
@@ -234,8 +230,9 @@ void Canvas::onPaint(wxPaintEvent&) {
 
   if (!m_renderer.isInitialised()) {
     SetCurrent(*m_context);
-    m_renderer.initialise();
-    resize();
+    auto sz = GetSize();
+
+    m_renderer.initialise(sz.x, sz.y);
   }
 
   render(dc);

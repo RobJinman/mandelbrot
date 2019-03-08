@@ -4,9 +4,9 @@
 
 class Renderer {
 public:
-  Renderer(int w, int h, std::function<void()> fnMakeGlContextCurrent);
+  Renderer(std::function<void()> fnMakeGlContextCurrent);
 
-  void initialise();
+  void initialise(int w, int h);
   bool isInitialised() const;
   void resize(int w, int h);
   void draw(bool fromTexture = false);
