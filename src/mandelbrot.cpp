@@ -188,12 +188,9 @@ void Mandelbrot::renderStripToMainMemoryBuffer(uint8_t* buffer) {
   auto& s = m_offlineRenderStatus;
   int i = s.stripsDrawn;
 
-  auto screenToGraphH = [this, h{s.h}, y0{rpb.ymin}, y1{rpb.ymax}](double scrH) {
-    return (y1 - y0) * (static_cast<double>(scrH) / static_cast<double>(h));
-  };
-
   int stripH = i < s.totalStrips - 1 ? s.stripH : s.finalStripH;
-  double stripH_gph = screenToGraphH(stripH);
+  double stripH_gph = (rpb.ymax - rpb.ymin) *
+                      (static_cast<double>(stripH) / static_cast<double>(s.h));
 
   GL_CHECK(glUseProgram(m_program.id));
 
