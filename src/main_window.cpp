@@ -465,7 +465,7 @@ uint8_t* MainWindow::beginExport(int w, int h) {
   m_btnExport->Disable();
   m_btnApplyParams->Disable();
   m_btnApplyColourScheme->Disable();
-  m_canvas->Disable();
+  m_canvas->disable(wxGetTranslation("Exporting..."));
 
   m_doingExport = true;
   m_renderer->renderToMainMemoryBuffer(w, h);
@@ -503,7 +503,7 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
   m_btnExport->Enable();
   m_btnApplyParams->Enable();
   m_btnApplyColourScheme->Enable();
-  m_canvas->Enable();
+  m_canvas->enable();
 
   m_canvas->refresh();
 }

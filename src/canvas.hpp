@@ -22,6 +22,8 @@ public:
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
   void setZoomAmount(double zoom);
+  void disable(const wxString& msg);
+  void enable();
 
 private:
   void render();
@@ -42,6 +44,7 @@ private:
   void onTick(wxTimerEvent& e);
 
   Renderer& m_renderer;
+  bool m_disabled = false;
   wxTimer* m_timer = nullptr;
   std::function<void()> m_onRender;
   std::unique_ptr<wxGLContext> m_context;

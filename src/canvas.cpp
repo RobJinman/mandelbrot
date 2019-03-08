@@ -241,6 +241,10 @@ void Canvas::render() {
     return;
   }
 
+  if (m_disabled) {
+    return;
+  }
+
   SetCurrent(*m_context);
 
   if (m_mouseDown) {
@@ -259,4 +263,26 @@ void Canvas::render() {
   SwapBuffers();
 
   m_onRender();
+}
+
+void Canvas::disable(const wxString& msg) {
+  m_disabled = true;
+  refresh();
+
+  wxClientDC dc(this);
+
+  wxSize msgSz = dc.GetTextExtent(msg);
+  wxSize winSz = GetClientSize();
+
+  wxPoint pt((winSz.x - msgSz.x) / 2, (winSz.y - msgSz.y) / 2);
+
+  dc.Clear();
+  dc.DrawText(msg, pt);
+
+  Disable();
+}
+
+void Canvas::enable() {
+  m_disabled = false;
+  Enable();
 }
