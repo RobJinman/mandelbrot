@@ -26,7 +26,7 @@ public:
   void enable();
 
 private:
-  void render();
+  void render(wxDC& dc);
   void measureFrameRate();
   void centreCursor();
   wxPoint getCursorPos() const;
@@ -45,6 +45,7 @@ private:
 
   Renderer& m_renderer;
   bool m_disabled = false;
+  wxString m_disabledMsg;
   wxTimer* m_timer = nullptr;
   std::function<void()> m_onRender;
   std::unique_ptr<wxGLContext> m_context;

@@ -222,6 +222,11 @@ void Canvas::makeGlContextCurrent() {
 
 void Canvas::refresh() {
   Refresh();
+  Update();
+#ifdef WIN32
+  Refresh();
+  Update();
+#endif
 }
 
 void Canvas::onPaint(wxPaintEvent&) {
@@ -233,15 +238,23 @@ void Canvas::onPaint(wxPaintEvent&) {
     resize();
   }
 
-  render();
+  render(dc);
 }
 
-void Canvas::render() {
+void Canvas::render(wxDC& dc) {
   if (!IsShownOnScreen()) {
     return;
   }
 
   if (m_disabled) {
+    wxSize msgSz = dc.GetTextExtent(m_disabledMsg);
+    wxSize winSz = GetClientSize();
+
+    wxPoint pt((winSz.x - msgSz.x) / 2, (winSz.y - msgSz.y) / 2);
+
+    dc.Clear();
+    dc.DrawText(m_disabledMsg, pt);
+
     return;
   }
 
@@ -267,17 +280,9 @@ void Canvas::render() {
 
 void Canvas::disable(const wxString& msg) {
   m_disabled = true;
+  m_disabledMsg = msg;
+
   refresh();
-
-  wxClientDC dc(this);
-
-  wxSize msgSz = dc.GetTextExtent(msg);
-  wxSize winSz = GetClientSize();
-
-  wxPoint pt((winSz.x - msgSz.x) / 2, (winSz.y - msgSz.y) / 2);
-
-  dc.Clear();
-  dc.DrawText(msg, pt);
 
   Disable();
 }
