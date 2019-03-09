@@ -74,7 +74,7 @@ void Renderer::initialise(int w, int h) {
   m_initialised = true;
 }
 
-void Renderer::initUniforms() { 
+void Renderer::initUniforms() {
   GL_CHECK(glUseProgram(m_program.id));
 
   m_program.u.colour = GL_CHECK(glGetUniformLocation(m_program.id, "u_colour"));
@@ -82,15 +82,27 @@ void Renderer::initUniforms() {
   updateUniforms(COLOUR);
 }
 
-void Renderer::draw(bool fromTexture) {
+void Renderer::clear(uint8_t r, uint8_t g, uint8_t b) {
   INIT_GUARD
   m_fnMakeGlContextCurrent();
 
+  GLfloat r_ = static_cast<GLfloat>(r) / 255.f;
+  GLfloat g_ = static_cast<GLfloat>(g) / 255.f;
+  GLfloat b_ = static_cast<GLfloat>(b) / 255.f;
+
+  GL_CHECK(glClearColor(r_, g_, b_, 1.f));
   GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+}
 
-  m_brot.draw(fromTexture);
+void Renderer::drawSelectionRect(double x, double y, double w, double h) {
+  INIT_GUARD
+  m_fnMakeGlContextCurrent();
 
-  if (m_selectionRectVisible) {
+  makeSelectionRect(x, y, w, h);
+
+  updateUniforms(COLOUR);
+
+  if (w > 0 && h > 0) {
     GL_CHECK(glUseProgram(m_program.id));
 
     GL_CHECK(glEnableVertexAttribArray(0));
@@ -100,7 +112,17 @@ void Renderer::draw(bool fromTexture) {
     GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 4 * VERTS_PER_RECT));
     GL_CHECK(glDisableVertexAttribArray(0));
   }
+}
 
+void Renderer::drawMandelbrot(bool fromTexture) {
+  INIT_GUARD
+  m_fnMakeGlContextCurrent();
+
+  m_brot.draw(fromTexture);
+}
+
+void Renderer::finish() {
+  INIT_GUARD
   GL_CHECK(glFlush());
 }
 
@@ -180,17 +202,6 @@ void Renderer::makeSelectionRect(double x, double y, double w, double h) {
   GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_program.vbo));
   GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, 0,
                            sizeof(GLfloat) * 4 * FLOATS_PER_RECT, verts));
-}
-
-void Renderer::drawSelectionRect(double x, double y, double w, double h) {
-  INIT_GUARD
-  m_fnMakeGlContextCurrent();
-
-  m_selectionRectVisible = w > 0 && h > 0;
-
-  makeSelectionRect(x, y, w, h);
-
-  updateUniforms(COLOUR);
 }
 
 void Renderer::zoom(double x, double y, double mag) {

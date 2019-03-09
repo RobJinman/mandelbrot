@@ -238,24 +238,22 @@ void Canvas::onPaint(wxPaintEvent&) {
   render(dc);
 }
 
-void Canvas::render(wxDC& dc) {
+void Canvas::render(wxDC&) {
   if (!IsShownOnScreen()) {
     return;
   }
 
+  SetCurrent(*m_context);
+  m_renderer.clear(255, 255, 255);
+
   if (m_disabled) {
-    wxSize msgSz = dc.GetTextExtent(m_disabledMsg);
-    wxSize winSz = GetClientSize();
-
-    wxPoint pt((winSz.x - msgSz.x) / 2, (winSz.y - msgSz.y) / 2);
-
-    dc.Clear();
-    dc.DrawText(m_disabledMsg, pt);
+    m_renderer.finish();
+    SwapBuffers();
 
     return;
   }
 
-  SetCurrent(*m_context);
+  m_renderer.drawMandelbrot(m_mouseDown);
 
   if (m_mouseDown) {
     int x = m_selectionRect.x;
@@ -266,21 +264,16 @@ void Canvas::render(wxDC& dc) {
     m_renderer.drawSelectionRect(x, y, w, h);
   }
 
-  m_renderer.draw(m_mouseDown);
-
-  measureFrameRate();
-
+  m_renderer.finish();
   SwapBuffers();
 
+  measureFrameRate();
   m_onRender();
 }
 
-void Canvas::disable(const wxString& msg) {
+void Canvas::disable() {
   m_disabled = true;
-  m_disabledMsg = msg;
-
   refresh();
-
   Disable();
 }
 

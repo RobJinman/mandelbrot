@@ -22,7 +22,7 @@ public:
   void setTargetFps(double fps);
   void setZoomPerFrame(double zoom);
   void setZoomAmount(double zoom);
-  void disable(const wxString& msg);
+  void disable();
   void enable();
 
 private:

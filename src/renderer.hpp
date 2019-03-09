@@ -9,8 +9,11 @@ public:
   void initialise(int w, int h);
   bool isInitialised() const;
   void resize(int w, int h);
-  void draw(bool fromTexture = false);
+
+  void clear(uint8_t r, uint8_t g, uint8_t b);
+  void drawMandelbrot(bool fromTexture = false);
   void drawSelectionRect(double x, double y, double w, double h);
+  void finish();
 
   void zoom(double x, double y, double mag);
   void zoom(double x0, double y0, double x1, double y1);
