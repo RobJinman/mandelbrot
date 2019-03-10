@@ -48,12 +48,12 @@ private:
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
   void onApplyParamsClick(wxCommandEvent& e);
-  void onApplyColourSchemeClick(wxCommandEvent& e);
   void onDeleteColourSchemeClick(wxCommandEvent& e);
   void onRestoreColourSchemeClick(wxCommandEvent& e);
   void onSaveColourSchemeClick(wxCommandEvent& e);
-  void onExportClick(wxCommandEvent& e);
   void onSelectColourScheme(wxCommandEvent& e);
+  void onColourSchemeNameChange(wxCommandEvent& e);
+  void onExportClick(wxCommandEvent& e);
   void onCanvasResize(wxSizeEvent& e);
   void onExportHeightChange(wxCommandEvent& e);
   void onExportWidthChange(wxCommandEvent& e);
@@ -82,7 +82,6 @@ private:
     wxComboBox* cboSelector;
     wxTextCtrl* txtCode;
     wxTextCtrl* txtCompileStatus;
-    wxButton* btnApply;
     wxButton* btnDelete;
     wxButton* btnRestore;
     wxButton* btnSave;

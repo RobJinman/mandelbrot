@@ -192,6 +192,8 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   m_colourScheme.cboSelector->SetStringSelection(DEFAULT_COLOUR_SCHEME);
   m_colourScheme.cboSelector->Bind(wxEVT_COMBOBOX,
                                    &MainWindow::onSelectColourScheme, this);
+  m_colourScheme.cboSelector->Bind(wxEVT_TEXT,
+                                   &MainWindow::onColourSchemeNameChange, this);
 
   m_colourScheme.txtCode = constructTextBox(box,
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
@@ -212,6 +214,7 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   m_colourScheme.btnDelete->Bind(wxEVT_BUTTON,
                                  &MainWindow::onDeleteColourSchemeClick,
                                  this);
+  m_colourScheme.btnDelete->Hide();
 
   m_colourScheme.btnRestore = new wxButton(box, wxID_ANY,
                                            wxGetTranslation("Restore"));
@@ -224,16 +227,11 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   m_colourScheme.btnSave->Bind(wxEVT_BUTTON,
                                &MainWindow::onSaveColourSchemeClick, this);
 
-  m_colourScheme.btnApply = new wxButton(box, wxID_ANY,
-                                         wxGetTranslation("Apply"));
-  m_colourScheme.btnApply->Bind(wxEVT_BUTTON,
-                                &MainWindow::onApplyColourSchemeClick, this);
-
   wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
-  hbox->Add(m_colourScheme.btnDelete);
-  hbox->Add(m_colourScheme.btnRestore);
-  hbox->Add(m_colourScheme.btnSave);
-  hbox->Add(m_colourScheme.btnApply);
+  hbox->AddStretchSpacer(1);
+  hbox->Add(m_colourScheme.btnDelete, 0, wxRIGHT, 5);
+  hbox->Add(m_colourScheme.btnRestore, 0, wxRIGHT, 5);
+  hbox->Add(m_colourScheme.btnSave, 0, wxRIGHT, 0);
 
   vbox->AddSpacer(10);
   vbox->Add(m_colourScheme.cboSelector, 0,
@@ -241,7 +239,7 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   vbox->Add(txtShaderCodePre, 0, wxLEFT | wxRIGHT, 10);
   vbox->Add(m_colourScheme.txtCode, 2, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(txtShaderCodePost, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(hbox, 0, wxLEFT | wxRIGHT, 10);
+  vbox->Add(hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(m_colourScheme.txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT,
             10);
 
@@ -514,7 +512,9 @@ uint8_t* MainWindow::beginExport(int w, int h) {
   m_export.progressBar->Show();
   m_export.btnExport->Disable();
   m_params.btnApply->Disable();
-  m_colourScheme.btnApply->Disable();
+  m_colourScheme.btnDelete->Disable();
+  m_colourScheme.btnRestore->Disable();
+  m_colourScheme.btnSave->Disable();
   m_canvas->disable();
   SetStatusText(wxGetTranslation("Exporting to file..."));
 
@@ -553,7 +553,9 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
   m_export.progressBar->Hide();
   m_export.btnExport->Enable();
   m_params.btnApply->Enable();
-  m_colourScheme.btnApply->Enable();
+  m_colourScheme.btnDelete->Enable();
+  m_colourScheme.btnRestore->Enable();
+  m_colourScheme.btnSave->Enable();
   m_canvas->enable();
   SetStatusText(wxGetTranslation("Export complete"));
 
@@ -605,7 +607,6 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 void MainWindow::applyColourScheme() {
   try {
     string name = m_colourScheme.cboSelector->GetValue().ToStdString();
-    std::cout << "Applying scheme " << name << "\n";
     string code = m_colourScheme.txtCode->GetValue().ToStdString();
     m_renderer->setColourSchemeImpl(code);
     m_canvas->refresh();
@@ -630,7 +631,6 @@ void MainWindow::selectColourScheme(int idx) {
 }
 
 void MainWindow::selectColourScheme(const wxString& name) {
-  std::cout << "Selecting scheme " << name << "\n";
   wxCommandEvent e;
   int idx = m_colourScheme.cboSelector->FindString(name);
 
@@ -639,22 +639,27 @@ void MainWindow::selectColourScheme(const wxString& name) {
     e.SetString(name);
   }
   else {
-    std::cout << "Not found\n";
     m_colourScheme.cboSelector->SetSelection(0);
     e.SetString(m_colourScheme.cboSelector->GetString(0));
   }
 
+  onColourSchemeNameChange(e);
   onSelectColourScheme(e);
+}
+
+void MainWindow::onColourSchemeNameChange(wxCommandEvent&) {
+  wxString scheme = m_colourScheme.cboSelector->GetValue();
+  bool isPreset = PRESETS.count(scheme.ToStdString()) == 1;
+
+  m_colourScheme.btnDelete->Show(!isPreset);
+  m_colourScheme.btnRestore->Show(isPreset);
+
+  m_colourScheme.btnDelete->GetParent()->Layout();
 }
 
 void MainWindow::onSelectColourScheme(wxCommandEvent& e) {
   string scheme = e.GetString().ToStdString();
-  std::cout << "On selection. Updating text box\n";
   m_colourScheme.txtCode->SetValue(m_colourScheme.colourSchemes.at(scheme));
-  applyColourScheme();
-}
-
-void MainWindow::onApplyColourSchemeClick(wxCommandEvent&) {
   applyColourScheme();
 }
 
@@ -697,7 +702,6 @@ void MainWindow::onSaveColourSchemeClick(wxCommandEvent&) {
 }
 
 void MainWindow::updateColourSchemeSelector() {
-  std::cout << "Updating scheme selector\n";
   auto& cbo = *m_colourScheme.cboSelector;
   wxString name = cbo.GetValue();
 
@@ -713,9 +717,7 @@ void MainWindow::updateColourSchemeSelector() {
 
 void MainWindow::onDeleteColourSchemeClick(wxCommandEvent&) {
   auto& cbo = *m_colourScheme.cboSelector;
-
   string name = cbo.GetValue().ToStdString();
-  std::cout << "Deleting scheme " << name << "\n";
 
   assert(PRESETS.count(name) == 0);
 
