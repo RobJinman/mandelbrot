@@ -7,10 +7,12 @@
 #include <wx/notebook.h>
 #include "canvas.hpp"
 #include "renderer.hpp"
-#include "colour_scheme_page.hpp"
 
 const int WINDOW_W = 1000;
 const int WINDOW_H = 600;
+
+class ColourSchemePage;
+class InfoPage;
 
 class MainWindow : public wxFrame {
 public:
@@ -57,6 +59,7 @@ private:
   wxPanel* m_leftPanel;
   Canvas* m_canvas;
   ColourSchemePage* m_colourSchemePage;
+  InfoPage* m_infoPage;
   
   struct {
     wxTextCtrl* txtMaxIterations;
@@ -73,14 +76,6 @@ private:
     wxButton* btnExport;
     wxGauge* progressBar;
   } m_export;
-
-  struct {
-    wxStaticText* txtMagLevel;
-    wxStaticText* txtXMin;
-    wxStaticText* txtXMax;
-    wxStaticText* txtYMin;
-    wxStaticText* txtYMax;
-  } m_dataFields;
 
   wxDECLARE_EVENT_TABLE();
 };

@@ -1,12 +1,13 @@
 #include <sstream>
 #include <iomanip>
 #include <wx/gbsizer.h>
-#include <wx/richtext/richtextctrl.h>
 #include "main_window.hpp"
 #include "config.hpp"
 #include "exception.hpp"
 #include "wx_helpers.hpp"
 #include "utils.hpp"
+#include "colour_scheme_page.hpp"
+#include "info_page.hpp"
 
 using std::string;
 
@@ -94,68 +95,6 @@ void MainWindow::constructLeftPanel() {
   vbox->Add(m_canvas, 1, wxEXPAND | wxALL, 5);
 }
 
-wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  box->SetSizer(vbox);
-
-  wxFont font(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
-                  wxFONTWEIGHT_NORMAL);
-
-  auto txtInfo = new wxRichTextCtrl(box, wxID_ANY, wxEmptyString,
-                                    wxDefaultPosition, wxDefaultSize,
-                                    wxVSCROLL | wxBORDER_NONE | wxWANTS_CHARS);
-
-  txtInfo->SetFont(font);
-
-  auto addHeading = [txtInfo](const wxString& text) {
-    txtInfo->BeginBold();
-    txtInfo->BeginUnderline();
-    txtInfo->WriteText(wxGetTranslation(text));
-    txtInfo->EndUnderline();
-    txtInfo->EndBold();
-    txtInfo->Newline();
-  };
-
-  auto addText = [txtInfo](const wxString& text, bool translate = true,
-                           bool newline = true, bool bold = false) {
-    if (bold) {
-      txtInfo->BeginBold();
-    }
-    txtInfo->WriteText(translate ? wxGetTranslation(text) : text);
-    if (newline) {
-      txtInfo->Newline();
-    }
-    if (bold) {
-      txtInfo->EndBold();
-    }
-  };
-
-  txtInfo->SetEditable(false);
-  txtInfo->SetMinSize(wxSize(0, 80));
-
-  addHeading(versionString());
-  addText("The Mandelbrot fractal rendered on the GPU.");
-  txtInfo->Newline();
-  addText("Click and drag the canvas to zoom.");
-  txtInfo->Newline();
-  addHeading(wxGetTranslation("Controls"));
-  addText("R   ", false, false, true);
-  addText("Reset view");
-  addText("Z   ", false, false, true);
-  addText("Toggle Fly-Through mode");
-  addText("I   ", false, false, true);
-  addText("Zoom in");
-  addText("O   ", false, false, true);
-  addText("Zoom out");
-
-  vbox->AddSpacer(10);
-  vbox->Add(txtInfo, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
-
-  return box;
-}
-
 wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, "");
 
@@ -212,46 +151,6 @@ wxStaticBox* MainWindow::constructFlyThroughParamsPanel(wxWindow* parent) {
   return box;
 }
 
-wxStaticBox* MainWindow::constructDataPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Data"));
-
-  auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
-
-  auto lblMagLevel = constructLabel(box, wxGetTranslation("Magnification"));
-  m_dataFields.txtMagLevel = constructLabel(box, "");
-
-  auto lblXMin = constructLabel(box, "x-min");
-  m_dataFields.txtXMin = constructLabel(box, "");
-
-  auto lblXMax = constructLabel(box, "x-max");
-  m_dataFields.txtXMax = constructLabel(box, "");
-
-  auto lblYMin = constructLabel(box, "y-min");
-  m_dataFields.txtYMin = constructLabel(box, "");
-
-  auto lblYMax = constructLabel(box, "y-max");
-  m_dataFields.txtYMax = constructLabel(box, "");
-
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblMagLevel, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_dataFields.txtMagLevel, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblXMin, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
-  grid->Add(m_dataFields.txtXMin, 1, wxEXPAND, 10);
-  grid->Add(lblXMax, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
-  grid->Add(m_dataFields.txtXMax, 1, wxEXPAND, 10);
-  grid->Add(lblYMin, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
-  grid->Add(m_dataFields.txtYMin, 1, wxEXPAND, 10);
-  grid->Add(lblYMax, 0, wxEXPAND | wxLEFT  | wxRIGHT, 10);
-  grid->Add(m_dataFields.txtYMax, 0, wxEXPAND | wxRIGHT, 10);
-
-  grid->AddGrowableCol(1);
-
-  return box;
-}
-
 wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
@@ -294,14 +193,8 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
 }
 
 void MainWindow::constructInfoPage() {
-  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
-  m_rightPanel->AddPage(page, wxGetTranslation("Info"));
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructInfoPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  vbox->Add(constructDataPanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
-
-  page->SetSizer(vbox);
+  m_infoPage = new InfoPage(m_rightPanel);
+  m_rightPanel->AddPage(m_infoPage, wxGetTranslation("Info"));
 }
 
 void MainWindow::constructParamsPage() {
@@ -322,10 +215,12 @@ void MainWindow::constructParamsPage() {
 }
 
 void MainWindow::constructColourSchemePage() {
-  auto page = new ColourSchemePage(m_rightPanel, [this](const string& code) {
+  auto fn = [this](const string& code) {
     applyColourScheme(code);
-  });
-  m_rightPanel->AddPage(page, wxGetTranslation("Colours"));
+  };
+
+  m_colourSchemePage = new ColourSchemePage(m_rightPanel, fn);
+  m_rightPanel->AddPage(m_colourSchemePage, wxGetTranslation("Colours"));
 }
 
 void MainWindow::constructExportPage() {
@@ -406,12 +301,7 @@ void MainWindow::onExportWidthChange(wxCommandEvent&) {
 }
 
 void MainWindow::onRender() {
-  auto magLevel = formatDouble(m_renderer->computeMagnification());
-  m_dataFields.txtMagLevel->SetLabel(magLevel);
-  m_dataFields.txtXMin->SetLabel(formatDouble(m_renderer->getXMin()));
-  m_dataFields.txtXMax->SetLabel(formatDouble(m_renderer->getXMax()));
-  m_dataFields.txtYMin->SetLabel(formatDouble(m_renderer->getYMin()));
-  m_dataFields.txtYMax->SetLabel(formatDouble(m_renderer->getYMax()));
+  m_infoPage->onRender(*m_renderer);
 }
 
 uint8_t* MainWindow::beginExport(int w, int h) {
