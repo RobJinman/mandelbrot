@@ -157,6 +157,8 @@ void ColourSchemePage::onColourSchemeNameChange(wxCommandEvent&) {
 }
 
 void ColourSchemePage::onSelectColourScheme(wxCommandEvent& e) {
+  onColourSchemeNameChange(e);
+
   string scheme = e.GetString().ToStdString();
   m_txtCode->SetValue(m_colourSchemes.at(scheme));
   applyColourScheme();
@@ -165,7 +167,7 @@ void ColourSchemePage::onSelectColourScheme(wxCommandEvent& e) {
 static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
   wxXmlDocument doc;
   auto root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "colour_schemes");
-  
+
   for (auto entry : schemes) {
     const wxString& name = entry.first;
     const wxString& code = entry.second;
