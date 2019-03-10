@@ -2,11 +2,17 @@
 #include <iomanip>
 #include <wx/gbsizer.h>
 #include <wx/richtext/richtextctrl.h>
+#include <wx/file.h>
+#include <wx/filename.h>
+#include <wx/dir.h>
+#include <wx/xml/xml.h>
 #include "main_window.hpp"
 #include "config.hpp"
 #include "exception.hpp"
 #include "wx_helpers.hpp"
 #include "utils.hpp"
+
+using std::string;
 
 static const long DEFAULT_EXPORT_HEIGHT = 1000;
 static const long MIN_EXPORT_WIDTH = 10;
@@ -22,7 +28,7 @@ static const double MAX_TARGET_FPS = 60.0;
 static const double MIN_ZOOM_PER_FRAME = 0.0001;
 static const double MAX_ZOOM_PER_FRAME = 10.0;
 
-static std::string formatDouble(double d) {
+static string formatDouble(double d) {
   std::stringstream ss;
   ss << std::scientific << d;
   return ss.str();
@@ -64,7 +70,7 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size)
 void MainWindow::onClose(wxCloseEvent& e) {
   m_quitting = true;
 
-  if (m_doingExport) {
+  if (m_export.busy) {
     e.Veto();
   }
   else {
@@ -161,19 +167,12 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
 }
 
 wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
+  loadColourSchemes();
+
   auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   box->SetSizer(vbox);
-
-  auto cboScheme = new wxChoice(box, wxID_ANY);
-  std::vector<wxString> names;
-  for (auto entry : PRESETS) {
-    names.push_back(entry.first);
-  }
-  cboScheme->Insert(names, 0);
-  cboScheme->SetStringSelection(DEFAULT_COLOUR_SCHEME);
-  cboScheme->Bind(wxEVT_CHOICE, &MainWindow::onSelectColourScheme, this);
 
   wxFont codeFontNormal(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                         wxFONTWEIGHT_NORMAL);
@@ -183,29 +182,68 @@ wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
   auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
     "vec3 computeColour(int i, float x, float y) {");
   txtShaderCodePre->SetFont(codeFontBold);
-  m_txtComputeColourImpl = constructTextBox(box,
+
+  m_colourScheme.cboSelector = new wxComboBox(box, wxID_ANY);
+  std::vector<wxString> names;
+  for (auto entry : m_colourScheme.colourSchemes) {
+    names.push_back(entry.first);
+  }
+  m_colourScheme.cboSelector->Insert(names, 0);
+  m_colourScheme.cboSelector->SetStringSelection(DEFAULT_COLOUR_SCHEME);
+  m_colourScheme.cboSelector->Bind(wxEVT_COMBOBOX,
+                                   &MainWindow::onSelectColourScheme, this);
+
+  m_colourScheme.txtCode = constructTextBox(box,
                                             PRESETS.at(DEFAULT_COLOUR_SCHEME),
                                             true, false, true);
-  m_txtComputeColourImpl->SetFont(codeFontNormal);
+  m_colourScheme.txtCode->SetFont(codeFontNormal);
+
   auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
   txtShaderCodePost->SetFont(codeFontBold);
-  m_txtCompileStatus = constructTextBox(box, wxEmptyString, true, true, true);
-  m_txtCompileStatus->SetFont(codeFontNormal);
-  m_txtCompileStatus->SetEditable(false);
-  m_txtCompileStatus->SetMinSize(wxSize(0, 80));
 
-  m_btnApplyColourScheme = new wxButton(box, wxID_ANY,
-                                        wxGetTranslation("Apply"));
-  m_btnApplyColourScheme->Bind(wxEVT_BUTTON,
-                               &MainWindow::onApplyColourSchemeClick, this);
+  m_colourScheme.txtCompileStatus = constructTextBox(box, wxEmptyString, true,
+                                                     true, true);
+  m_colourScheme.txtCompileStatus->SetFont(codeFontNormal);
+  m_colourScheme.txtCompileStatus->SetEditable(false);
+  m_colourScheme.txtCompileStatus->SetMinSize(wxSize(0, 80));
+
+  m_colourScheme.btnDelete = new wxButton(box, wxID_ANY,
+                                          wxGetTranslation("Delete"));
+  m_colourScheme.btnDelete->Bind(wxEVT_BUTTON,
+                                 &MainWindow::onDeleteColourSchemeClick,
+                                 this);
+
+  m_colourScheme.btnRestore = new wxButton(box, wxID_ANY,
+                                           wxGetTranslation("Restore"));
+  m_colourScheme.btnRestore->Bind(wxEVT_BUTTON,
+                                  &MainWindow::onRestoreColourSchemeClick,
+                                  this);
+
+  m_colourScheme.btnSave = new wxButton(box, wxID_ANY,
+                                        wxGetTranslation("Save"));
+  m_colourScheme.btnSave->Bind(wxEVT_BUTTON,
+                               &MainWindow::onSaveColourSchemeClick, this);
+
+  m_colourScheme.btnApply = new wxButton(box, wxID_ANY,
+                                         wxGetTranslation("Apply"));
+  m_colourScheme.btnApply->Bind(wxEVT_BUTTON,
+                                &MainWindow::onApplyColourSchemeClick, this);
+
+  wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
+  hbox->Add(m_colourScheme.btnDelete);
+  hbox->Add(m_colourScheme.btnRestore);
+  hbox->Add(m_colourScheme.btnSave);
+  hbox->Add(m_colourScheme.btnApply);
 
   vbox->AddSpacer(10);
-  vbox->Add(cboScheme, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  vbox->Add(m_colourScheme.cboSelector, 0,
+            wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   vbox->Add(txtShaderCodePre, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(m_txtComputeColourImpl, 2, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(m_colourScheme.txtCode, 2, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(txtShaderCodePost, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(m_btnApplyColourScheme, 0, wxALIGN_RIGHT | wxRIGHT, 10);
-  vbox->Add(m_txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  vbox->Add(hbox, 0, wxLEFT | wxRIGHT, 10);
+  vbox->Add(m_colourScheme.txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT,
+            10);
 
   return box;
 }
@@ -217,20 +255,20 @@ wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
   box->SetSizer(grid);
 
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
-  m_txtMaxIterations = constructTextBox(box,
-                                        std::to_string(DEFAULT_MAX_ITERATIONS));
-  m_txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  string strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
+  m_params.txtMaxIterations = constructTextBox(box, strMaxI);
+  m_params.txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   auto lblZoomAmount = constructLabel(box,
                                       wxGetTranslation("Zoom amount"));
-  m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
-  m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+  m_params.txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
+  m_params.txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
   grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_params.txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
   grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtZoomAmount, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_params.txtZoomAmount, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
 
@@ -246,20 +284,20 @@ wxStaticBox* MainWindow::constructFlyThroughParamsPanel(wxWindow* parent) {
 
   auto strFps = std::to_string(DEFAULT_TARGET_FPS);
   auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
-  m_txtTargetFps = constructTextBox(box, strFps);
-  m_txtTargetFps->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+  m_params.txtTargetFps = constructTextBox(box, strFps);
+  m_params.txtTargetFps->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   auto strZoom = std::to_string(DEFAULT_ZOOM_PER_FRAME);
   auto lblZoom = constructLabel(box, wxGetTranslation("Zoom per frame"));
-  m_txtZoomPerFrame = constructTextBox(box, strZoom);
-  m_txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+  m_params.txtZoomPerFrame = constructTextBox(box, strZoom);
+  m_params.txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
   grid->AddSpacer(10);
   grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtTargetFps, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_params.txtTargetFps, 0, wxEXPAND | wxRIGHT, 10);
   grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtZoomPerFrame, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_params.txtZoomPerFrame, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
 
@@ -313,36 +351,36 @@ wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
   box->SetSizer(grid);
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
-  m_txtExportWidth = constructTextBox(box, wxEmptyString);
-  m_txtExportWidth->SetValidator(wxTextValidator(wxFILTER_DIGITS));
-  m_txtExportWidth->Bind(wxEVT_TEXT, &MainWindow::onExportWidthChange, this);
+  m_export.txtWidth = constructTextBox(box, wxEmptyString);
+  m_export.txtWidth->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  m_export.txtWidth->Bind(wxEVT_TEXT, &MainWindow::onExportWidthChange, this);
 
   auto lblHeight = constructLabel(box, wxGetTranslation("Height"));
-  m_txtExportHeight = constructTextBox(box,
-                                       std::to_string(DEFAULT_EXPORT_HEIGHT));
-  m_txtExportHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
-  m_txtExportHeight->Bind(wxEVT_TEXT, &MainWindow::onExportHeightChange, this);
+  m_export.txtHeight = constructTextBox(box,
+                                        std::to_string(DEFAULT_EXPORT_HEIGHT));
+  m_export.txtHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+  m_export.txtHeight->Bind(wxEVT_TEXT, &MainWindow::onExportHeightChange, this);
 
-  m_btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
-  m_btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
+  m_export.btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
+  m_export.btnExport->Bind(wxEVT_BUTTON, &MainWindow::onExportClick, this);
 
-  m_exportProgressBar = new wxGauge(box, wxID_ANY, 100);
+  m_export.progressBar = new wxGauge(box, wxID_ANY, 100);
 
   grid->Add(lblWidth, wxGBPosition(0, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtExportWidth, wxGBPosition(1, 0), wxGBSpan(1, 1),
+  grid->Add(m_export.txtWidth, wxGBPosition(1, 0), wxGBSpan(1, 1),
             wxEXPAND | wxRIGHT, 10);
   grid->Add(lblHeight, wxGBPosition(0, 1), wxGBSpan(1, 1), wxLEFT | wxRIGHT,
             10);
-  grid->Add(m_txtExportHeight, wxGBPosition(1, 1), wxGBSpan(1, 1),
+  grid->Add(m_export.txtHeight, wxGBPosition(1, 1), wxGBSpan(1, 1),
             wxEXPAND | wxRIGHT, 10);
-  grid->Add(m_btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
-            10);
-  grid->Add(m_exportProgressBar, wxGBPosition(3, 0), wxGBSpan(2, 1),
+  grid->Add(m_export.btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1),
+            wxEXPAND | wxRIGHT, 10);
+  grid->Add(m_export.progressBar, wxGBPosition(3, 0), wxGBSpan(2, 1),
             wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
   grid->AddGrowableCol(0);
 
-  m_exportProgressBar->Hide();
+  m_export.progressBar->Hide();
 
   return box;
 }
@@ -362,15 +400,15 @@ void MainWindow::constructParamsPage() {
   auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
   m_rightPanel->AddPage(page, wxGetTranslation("Parameters"));
 
-  m_btnApplyParams = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
-  m_btnApplyParams->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
+  m_params.btnApply = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
+  m_params.btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
   vbox->Add(constructRenderParamsPanel(page), 1,
             wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
   vbox->Add(constructFlyThroughParamsPanel(page), 1,
             wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
-  vbox->Add(m_btnApplyParams, 0, wxALIGN_RIGHT | wxRIGHT, 10);
+  vbox->Add(m_params.btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
 
   page->SetSizer(vbox);
 }
@@ -425,17 +463,17 @@ void MainWindow::adjustExportSize(bool adjustWidth) {
 
   if (adjustWidth) {
     long exportH = 0;
-    m_txtExportHeight->GetValue().ToLong(&exportH);
+    m_export.txtHeight->GetValue().ToLong(&exportH);
 
     long exportW = exportH * aspect;
-    m_txtExportWidth->ChangeValue(std::to_string(exportW));
+    m_export.txtWidth->ChangeValue(std::to_string(exportW));
   }
   else {
     long exportW = 0;
-    m_txtExportWidth->GetValue().ToLong(&exportW);
+    m_export.txtWidth->GetValue().ToLong(&exportW);
 
     long exportH = exportW / aspect;
-    m_txtExportHeight->ChangeValue(std::to_string(exportH));
+    m_export.txtHeight->ChangeValue(std::to_string(exportH));
   }
 }
 
@@ -473,24 +511,24 @@ void MainWindow::onRender() {
 }
 
 uint8_t* MainWindow::beginExport(int w, int h) {
-  m_exportProgressBar->Show();
-  m_btnExport->Disable();
-  m_btnApplyParams->Disable();
-  m_btnApplyColourScheme->Disable();
+  m_export.progressBar->Show();
+  m_export.btnExport->Disable();
+  m_params.btnApply->Disable();
+  m_colourScheme.btnApply->Disable();
   m_canvas->disable();
   SetStatusText(wxGetTranslation("Exporting to file..."));
 
-  m_doingExport = true;
+  m_export.busy = true;
   m_renderer->renderToMainMemoryBuffer(w, h);
 
   const OfflineRenderStatus& status = m_renderer->continueOfflineRender();
 
   while (status.progress != 100) {
-    m_exportProgressBar->SetValue(status.progress);
+    m_export.progressBar->SetValue(status.progress);
     wxYield();
 
     if (m_quitting) {
-      m_doingExport = false;
+      m_export.busy = false;
       Close();
       return nullptr;
     }
@@ -503,7 +541,7 @@ uint8_t* MainWindow::beginExport(int w, int h) {
 
 void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
                            uint8_t* data) {
-  m_doingExport = false;
+  m_export.busy = false;
 
   if (data != nullptr) {
     wxImage image(w, h, data);
@@ -512,10 +550,10 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
     image.SaveFile(exportFilePath, wxBITMAP_TYPE_BMP);
   }
 
-  m_exportProgressBar->Hide();
-  m_btnExport->Enable();
-  m_btnApplyParams->Enable();
-  m_btnApplyColourScheme->Enable();
+  m_export.progressBar->Hide();
+  m_export.btnExport->Enable();
+  m_params.btnApply->Enable();
+  m_colourScheme.btnApply->Enable();
   m_canvas->enable();
   SetStatusText(wxGetTranslation("Export complete"));
 
@@ -529,10 +567,10 @@ void MainWindow::onExportClick(wxCommandEvent&) {
     return;
   }
 
-  long w = getBoundedValue<long>(*m_txtExportWidth, MIN_EXPORT_WIDTH,
+  long w = getBoundedValue<long>(*m_export.txtWidth, MIN_EXPORT_WIDTH,
                                  MAX_EXPORT_WIDTH);
 
-  long h = getBoundedValue<long>(*m_txtExportHeight, MIN_EXPORT_HEIGHT,
+  long h = getBoundedValue<long>(*m_export.txtHeight, MIN_EXPORT_HEIGHT,
                                  MAX_EXPORT_HEIGHT);
 
   wxString exportFilePath = fileDialog.GetPath();
@@ -542,19 +580,21 @@ void MainWindow::onExportClick(wxCommandEvent&) {
 }
 
 void MainWindow::onApplyParamsClick(wxCommandEvent&) {
-  long maxI = getBoundedValue<long>(*m_txtMaxIterations, MIN_ITERATIONS,
+  long maxI = getBoundedValue<long>(*m_params.txtMaxIterations, MIN_ITERATIONS,
                                     MAX_ITERATIONS);
   m_renderer->setMaxIterations(maxI);
 
-  double zoomAmount = getBoundedValue<double>(*m_txtZoomAmount, MIN_ZOOM_AMOUNT,
+  double zoomAmount = getBoundedValue<double>(*m_params.txtZoomAmount,
+                                              MIN_ZOOM_AMOUNT,
                                               MAX_ZOOM_AMOUNT);
   m_canvas->setZoomAmount(zoomAmount);
 
-  double targetFps = getBoundedValue<double>(*m_txtTargetFps, MIN_TARGET_FPS,
+  double targetFps = getBoundedValue<double>(*m_params.txtTargetFps,
+                                             MIN_TARGET_FPS,
                                              MAX_TARGET_FPS);
   m_canvas->setTargetFps(targetFps);
 
-  double zoomPerFrame = getBoundedValue<double>(*m_txtZoomPerFrame,
+  double zoomPerFrame = getBoundedValue<double>(*m_params.txtZoomPerFrame,
                                                 MIN_ZOOM_PER_FRAME,
                                                 MAX_ZOOM_PER_FRAME);
   m_canvas->setZoomPerFrame(zoomPerFrame);
@@ -564,24 +604,157 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
 
 void MainWindow::applyColourScheme() {
   try {
-    std::string code = m_txtComputeColourImpl->GetValue().ToStdString();
+    string name = m_colourScheme.cboSelector->GetValue().ToStdString();
+    std::cout << "Applying scheme " << name << "\n";
+    string code = m_colourScheme.txtCode->GetValue().ToStdString();
     m_renderer->setColourSchemeImpl(code);
     m_canvas->refresh();
-    m_txtCompileStatus->SetValue(wxGetTranslation("Success"));
+    m_colourScheme.txtCompileStatus->SetValue(wxGetTranslation("Success"));
+    m_colourScheme.colourSchemes[name] = code;
   }
   catch (const ShaderException& e) {
-    m_txtCompileStatus->SetValue(e.errorOutput());
+    m_colourScheme.txtCompileStatus->SetValue(e.errorOutput());
   }
 }
 
+void MainWindow::selectColourScheme(int idx) {
+  auto& cbo = *m_colourScheme.cboSelector;
+  assert(idx >= 0 && idx < static_cast<int>(cbo.GetCount()));
+
+  wxString name = cbo.GetString(idx);
+  cbo.SetSelection(idx);
+
+  wxCommandEvent e;
+  e.SetString(name);
+  onSelectColourScheme(e);
+}
+
+void MainWindow::selectColourScheme(const wxString& name) {
+  std::cout << "Selecting scheme " << name << "\n";
+  wxCommandEvent e;
+  int idx = m_colourScheme.cboSelector->FindString(name);
+
+  if (idx != wxNOT_FOUND) {
+    m_colourScheme.cboSelector->SetSelection(idx);
+    e.SetString(name);
+  }
+  else {
+    std::cout << "Not found\n";
+    m_colourScheme.cboSelector->SetSelection(0);
+    e.SetString(m_colourScheme.cboSelector->GetString(0));
+  }
+
+  onSelectColourScheme(e);
+}
+
 void MainWindow::onSelectColourScheme(wxCommandEvent& e) {
-  std::string scheme = e.GetString().ToStdString();
-  m_txtComputeColourImpl->SetValue(PRESETS.at(scheme));
+  string scheme = e.GetString().ToStdString();
+  std::cout << "On selection. Updating text box\n";
+  m_colourScheme.txtCode->SetValue(m_colourScheme.colourSchemes.at(scheme));
   applyColourScheme();
 }
 
 void MainWindow::onApplyColourSchemeClick(wxCommandEvent&) {
   applyColourScheme();
+}
+
+static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
+  wxXmlDocument doc;
+  auto root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "colour_schemes");
+  
+  for (auto entry : schemes) {
+    const wxString& name = entry.first;
+    const wxString& code = entry.second;
+
+    auto xmlColourScheme = new wxXmlNode(root, wxXML_ELEMENT_NODE,
+                                         "colour_scheme");
+
+    xmlColourScheme->AddAttribute("name", name);
+    xmlColourScheme->AddChild(new wxXmlNode(nullptr, wxXML_TEXT_NODE, "code",
+                                            code));
+  }
+
+  doc.SetRoot(root);
+  return doc;
+}
+
+void MainWindow::saveColourSchemes() {
+  if (!wxFile::Exists(m_colourScheme.filePath)) {
+    wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+  }
+
+  wxXmlDocument doc = colourSchemesToXmlDoc(m_colourScheme.colourSchemes);
+  doc.Save(m_colourScheme.filePath);
+}
+
+void MainWindow::onSaveColourSchemeClick(wxCommandEvent&) {
+  string name = m_colourScheme.cboSelector->GetValue().ToStdString();
+  string code = m_colourScheme.txtCode->GetValue().ToStdString();
+  m_colourScheme.colourSchemes[name] = code;
+
+  updateColourSchemeSelector();
+  saveColourSchemes();
+}
+
+void MainWindow::updateColourSchemeSelector() {
+  std::cout << "Updating scheme selector\n";
+  auto& cbo = *m_colourScheme.cboSelector;
+  wxString name = cbo.GetValue();
+
+  std::vector<wxString> names;
+  for (auto entry : m_colourScheme.colourSchemes) {
+    names.push_back(entry.first);
+  }
+  cbo.Clear();
+  cbo.Insert(names, 0);
+
+  selectColourScheme(name);
+}
+
+void MainWindow::onDeleteColourSchemeClick(wxCommandEvent&) {
+  auto& cbo = *m_colourScheme.cboSelector;
+
+  string name = cbo.GetValue().ToStdString();
+  std::cout << "Deleting scheme " << name << "\n";
+
+  assert(PRESETS.count(name) == 0);
+
+  m_colourScheme.colourSchemes.erase(name);
+  updateColourSchemeSelector();
+  saveColourSchemes();
+}
+
+void MainWindow::loadColourSchemes() {
+  m_colourScheme.filePath = joinPaths(userDataPath("colour_schemes.xml"));
+
+  for (auto entry : PRESETS) {
+    m_colourScheme.colourSchemes.insert(entry);
+  }
+
+  if (wxFile::Exists(m_colourScheme.filePath)) {
+    wxXmlDocument doc;
+    doc.Load(m_colourScheme.filePath);
+
+    auto xmlColourScheme = doc.GetRoot()->GetChildren();
+    while (xmlColourScheme) {
+      wxString name = xmlColourScheme->GetAttribute("name");
+
+      auto xmlCode = xmlColourScheme->GetChildren();
+      wxString code = xmlCode->GetContent();
+
+      m_colourScheme.colourSchemes[name.ToStdString()] = code.ToStdString();
+
+      xmlColourScheme = xmlColourScheme->GetNext();
+    }
+  }
+}
+
+void MainWindow::onRestoreColourSchemeClick(wxCommandEvent&) {
+  string name = m_colourScheme.cboSelector->GetValue().ToStdString();
+  m_colourScheme.txtCode->ChangeValue(PRESETS.at(name));
+
+  applyColourScheme();
+  saveColourSchemes();
 }
 
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {

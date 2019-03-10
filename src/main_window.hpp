@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <map>
 #include <wx/wx.h>
 #include <wx/splitter.h>
 #include <wx/notebook.h>
@@ -9,6 +10,8 @@
 
 const int WINDOW_W = 1000;
 const int WINDOW_H = 600;
+
+typedef std::map<std::string, std::string> StringMap;
 
 class MainWindow : public wxFrame {
 public:
@@ -30,7 +33,12 @@ private:
   void constructExportPage();
 
   void onRender();
+  void loadColourSchemes();
+  void saveColourSchemes();
+  void selectColourScheme(const wxString& name);
+  void selectColourScheme(int idx);
   void applyColourScheme();
+  void updateColourSchemeSelector();
   void adjustExportSize(bool adjustWidth);
   void makeGlContextCurrent();
   uint8_t* beginExport(int w, int h);
@@ -41,6 +49,9 @@ private:
   void onFlyThroughModeToggle(wxCommandEvent& e);
   void onApplyParamsClick(wxCommandEvent& e);
   void onApplyColourSchemeClick(wxCommandEvent& e);
+  void onDeleteColourSchemeClick(wxCommandEvent& e);
+  void onRestoreColourSchemeClick(wxCommandEvent& e);
+  void onSaveColourSchemeClick(wxCommandEvent& e);
   void onExportClick(wxCommandEvent& e);
   void onSelectColourScheme(wxCommandEvent& e);
   void onCanvasResize(wxSizeEvent& e);
@@ -51,25 +62,40 @@ private:
   void onClose(wxCloseEvent& e);
 
   bool m_quitting = false;
-  bool m_doingExport = false;
   std::unique_ptr<Renderer> m_renderer;
   wxSplitterWindow* m_splitter;
   wxBoxSizer* m_vbox;
   wxNotebook* m_rightPanel;
   wxPanel* m_leftPanel;
   Canvas* m_canvas;
-  wxTextCtrl* m_txtMaxIterations;
-  wxTextCtrl* m_txtZoomAmount;
-  wxTextCtrl* m_txtTargetFps;
-  wxTextCtrl* m_txtZoomPerFrame;
-  wxButton* m_btnApplyParams;
-  wxTextCtrl* m_txtComputeColourImpl;
-  wxTextCtrl* m_txtCompileStatus;
-  wxButton* m_btnApplyColourScheme;
-  wxTextCtrl* m_txtExportWidth;
-  wxTextCtrl* m_txtExportHeight;
-  wxButton* m_btnExport;
-  wxGauge* m_exportProgressBar;
+  
+  struct {
+    wxTextCtrl* txtMaxIterations;
+    wxTextCtrl* txtZoomAmount;
+    wxTextCtrl* txtTargetFps;
+    wxTextCtrl* txtZoomPerFrame;
+    wxButton* btnApply;
+  } m_params;
+
+  struct {
+    wxString filePath;
+    wxComboBox* cboSelector;
+    wxTextCtrl* txtCode;
+    wxTextCtrl* txtCompileStatus;
+    wxButton* btnApply;
+    wxButton* btnDelete;
+    wxButton* btnRestore;
+    wxButton* btnSave;
+    StringMap colourSchemes;
+  } m_colourScheme;
+
+  struct {
+    bool busy = false;
+    wxTextCtrl* txtWidth;
+    wxTextCtrl* txtHeight;
+    wxButton* btnExport;
+    wxGauge* progressBar;
+  } m_export;
 
   struct {
     wxStaticText* txtMagLevel;
