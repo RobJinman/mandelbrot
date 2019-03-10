@@ -1,21 +1,22 @@
 #pragma once
 
-#include <wx/wx.h>
 #include <map>
 #include <string>
+#include <wx/wx.h>
+#include <wx/notebook.h>
 
 typedef std::map<std::string, std::string> StringMap;
 typedef std::function<void(const std::string&)> fnApplyColourScheme_t;
 
-class ColourSchemePanel : public wxStaticBox {
+class ColourSchemePage : public wxNotebookPage {
 public:
-  ColourSchemePanel(wxWindow* parent,
-                    fnApplyColourScheme_t fnApplyColourScheme);
+  ColourSchemePage(wxWindow* parent, fnApplyColourScheme_t fnApplyColourScheme);
 
   void enable();
   void disable();
 
 private:
+  wxStaticBox* constructStaticBox(wxWindow* parent);
   void loadColourSchemes();
   void saveColourSchemes();
   void selectColourScheme(const wxString& name);

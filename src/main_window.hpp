@@ -7,7 +7,7 @@
 #include <wx/notebook.h>
 #include "canvas.hpp"
 #include "renderer.hpp"
-#include "colour_scheme_panel.hpp"
+#include "colour_scheme_page.hpp"
 
 const int WINDOW_W = 1000;
 const int WINDOW_H = 600;
@@ -21,7 +21,6 @@ private:
   void constructLeftPanel();
   void constructRightPanel();
   wxStaticBox* constructInfoPanel(wxWindow* parent);
-  ColourSchemePanel* constructColourSchemePanel(wxWindow* parent);
   wxStaticBox* constructRenderParamsPanel(wxWindow* parent);
   wxStaticBox* constructFlyThroughParamsPanel(wxWindow* parent);
   wxStaticBox* constructDataPanel(wxWindow* parent);
@@ -57,7 +56,7 @@ private:
   wxNotebook* m_rightPanel;
   wxPanel* m_leftPanel;
   Canvas* m_canvas;
-  ColourSchemePanel* m_colourSchemePanel;
+  ColourSchemePage* m_colourSchemePage;
   
   struct {
     wxTextCtrl* txtMaxIterations;

@@ -2,7 +2,7 @@
 #include <wx/filename.h>
 #include <wx/dir.h>
 #include <wx/xml/xml.h>
-#include "colour_scheme_panel.hpp"
+#include "colour_scheme_page.hpp"
 #include "wx_helpers.hpp"
 #include "mandelbrot.hpp"
 #include "exception.hpp"
@@ -10,60 +10,69 @@
 
 using std::string;
 
-ColourSchemePanel::ColourSchemePanel(wxWindow* parent,
-                                     fnApplyColourScheme_t fnApplyColourScheme)
-  : wxStaticBox(parent, wxID_ANY, wxEmptyString),
+ColourSchemePage::ColourSchemePage(wxWindow* parent,
+                                   fnApplyColourScheme_t fnApplyColourScheme)
+  : wxNotebookPage(parent, wxID_ANY),
     m_fnApplyColourScheme(fnApplyColourScheme) {
 
   loadColourSchemes();
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
+  vbox->Add(constructStaticBox(this), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
   SetSizer(vbox);
+}
+
+wxStaticBox* ColourSchemePage::constructStaticBox(wxNotebookPage* parent) {
+  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
+
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  box->SetSizer(vbox);
 
   wxFont codeFontNormal(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                         wxFONTWEIGHT_NORMAL);
   wxFont codeFontBold(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                       wxFONTWEIGHT_BOLD);
 
-  auto txtShaderCodePre = new wxStaticText(this, wxID_ANY,
+  auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
     "vec3 computeColour(int i, float x, float y) {");
   txtShaderCodePre->SetFont(codeFontBold);
 
-  m_cboSelector = new wxComboBox(this, wxID_ANY);
+  m_cboSelector = new wxComboBox(box, wxID_ANY);
   std::vector<wxString> names;
   for (auto entry : m_colourSchemes) {
     names.push_back(entry.first);
   }
   m_cboSelector->Insert(names, 0);
   m_cboSelector->SetStringSelection(DEFAULT_COLOUR_SCHEME);
-  m_cboSelector->Bind(wxEVT_COMBOBOX, &ColourSchemePanel::onSelectColourScheme,
+  m_cboSelector->Bind(wxEVT_COMBOBOX, &ColourSchemePage::onSelectColourScheme,
                       this);
-  m_cboSelector->Bind(wxEVT_TEXT, &ColourSchemePanel::onColourSchemeNameChange,
+  m_cboSelector->Bind(wxEVT_TEXT, &ColourSchemePage::onColourSchemeNameChange,
                       this);
 
-  m_txtCode = constructTextBox(this, PRESETS.at(DEFAULT_COLOUR_SCHEME), true,
+  m_txtCode = constructTextBox(box, PRESETS.at(DEFAULT_COLOUR_SCHEME), true,
                                false, true);
   m_txtCode->SetFont(codeFontNormal);
 
-  auto txtShaderCodePost = new wxStaticText(this, wxID_ANY, "}");
+  auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
   txtShaderCodePost->SetFont(codeFontBold);
 
-  m_txtCompileStatus = constructTextBox(this, wxEmptyString, true, true, true);
+  m_txtCompileStatus = constructTextBox(box, wxEmptyString, true, true, true);
   m_txtCompileStatus->SetFont(codeFontNormal);
   m_txtCompileStatus->SetEditable(false);
   m_txtCompileStatus->SetMinSize(wxSize(0, 80));
 
-  m_btnDelete = new wxButton(this, wxID_ANY, wxGetTranslation("Delete"));
-  m_btnDelete->Bind(wxEVT_BUTTON, &ColourSchemePanel::onDeleteColourSchemeClick,
+  m_btnDelete = new wxButton(box, wxID_ANY, wxGetTranslation("Delete"));
+  m_btnDelete->Bind(wxEVT_BUTTON, &ColourSchemePage::onDeleteColourSchemeClick,
                     this);
   m_btnDelete->Hide();
 
-  m_btnRestore = new wxButton(this, wxID_ANY, wxGetTranslation("Restore"));
+  m_btnRestore = new wxButton(box, wxID_ANY, wxGetTranslation("Restore"));
   m_btnRestore->Bind(wxEVT_BUTTON,
-                     &ColourSchemePanel::onRestoreColourSchemeClick, this);
+                     &ColourSchemePage::onRestoreColourSchemeClick, this);
 
-  m_btnSave = new wxButton(this, wxID_ANY, wxGetTranslation("Save"));
-  m_btnSave->Bind(wxEVT_BUTTON, &ColourSchemePanel::onSaveColourSchemeClick,
+  m_btnSave = new wxButton(box, wxID_ANY, wxGetTranslation("Save"));
+  m_btnSave->Bind(wxEVT_BUTTON, &ColourSchemePage::onSaveColourSchemeClick,
                   this);
 
   wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
@@ -79,21 +88,23 @@ ColourSchemePanel::ColourSchemePanel(wxWindow* parent,
   vbox->Add(txtShaderCodePost, 0, wxLEFT | wxRIGHT, 10);
   vbox->Add(hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(m_txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
+
+  return box;
 }
 
-void ColourSchemePanel::enable() {
+void ColourSchemePage::enable() {
   m_btnDelete->Enable();
   m_btnRestore->Enable();
   m_btnSave->Enable();
 }
 
-void ColourSchemePanel::disable() {
+void ColourSchemePage::disable() {
   m_btnDelete->Disable();
   m_btnRestore->Disable();
   m_btnSave->Disable();
 }
 
-void ColourSchemePanel::applyColourScheme() {
+void ColourSchemePage::applyColourScheme() {
   try {
     string name = m_cboSelector->GetValue().ToStdString();
     string code = m_txtCode->GetValue().ToStdString();
@@ -106,7 +117,7 @@ void ColourSchemePanel::applyColourScheme() {
   }
 }
 
-void ColourSchemePanel::selectColourScheme(int idx) {
+void ColourSchemePage::selectColourScheme(int idx) {
   auto& cbo = *m_cboSelector;
   assert(idx >= 0 && idx < static_cast<int>(cbo.GetCount()));
 
@@ -118,7 +129,7 @@ void ColourSchemePanel::selectColourScheme(int idx) {
   onSelectColourScheme(e);
 }
 
-void ColourSchemePanel::selectColourScheme(const wxString& name) {
+void ColourSchemePage::selectColourScheme(const wxString& name) {
   wxCommandEvent e;
   int idx = m_cboSelector->FindString(name);
 
@@ -135,7 +146,7 @@ void ColourSchemePanel::selectColourScheme(const wxString& name) {
   onSelectColourScheme(e);
 }
 
-void ColourSchemePanel::onColourSchemeNameChange(wxCommandEvent&) {
+void ColourSchemePage::onColourSchemeNameChange(wxCommandEvent&) {
   wxString scheme = m_cboSelector->GetValue();
   bool isPreset = PRESETS.count(scheme.ToStdString()) == 1;
 
@@ -145,7 +156,7 @@ void ColourSchemePanel::onColourSchemeNameChange(wxCommandEvent&) {
   m_btnDelete->GetParent()->Layout();
 }
 
-void ColourSchemePanel::onSelectColourScheme(wxCommandEvent& e) {
+void ColourSchemePage::onSelectColourScheme(wxCommandEvent& e) {
   string scheme = e.GetString().ToStdString();
   m_txtCode->SetValue(m_colourSchemes.at(scheme));
   applyColourScheme();
@@ -171,7 +182,7 @@ static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
   return doc;
 }
 
-void ColourSchemePanel::saveColourSchemes() {
+void ColourSchemePage::saveColourSchemes() {
   if (!wxFile::Exists(m_filePath)) {
     wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
   }
@@ -180,7 +191,7 @@ void ColourSchemePanel::saveColourSchemes() {
   doc.Save(m_filePath);
 }
 
-void ColourSchemePanel::onSaveColourSchemeClick(wxCommandEvent&) {
+void ColourSchemePage::onSaveColourSchemeClick(wxCommandEvent&) {
   string name = m_cboSelector->GetValue().ToStdString();
   string code = m_txtCode->GetValue().ToStdString();
   m_colourSchemes[name] = code;
@@ -189,7 +200,7 @@ void ColourSchemePanel::onSaveColourSchemeClick(wxCommandEvent&) {
   saveColourSchemes();
 }
 
-void ColourSchemePanel::updateColourSchemeSelector() {
+void ColourSchemePage::updateColourSchemeSelector() {
   auto& cbo = *m_cboSelector;
   wxString name = cbo.GetValue();
 
@@ -203,7 +214,7 @@ void ColourSchemePanel::updateColourSchemeSelector() {
   selectColourScheme(name);
 }
 
-void ColourSchemePanel::onDeleteColourSchemeClick(wxCommandEvent&) {
+void ColourSchemePage::onDeleteColourSchemeClick(wxCommandEvent&) {
   auto& cbo = *m_cboSelector;
   string name = cbo.GetValue().ToStdString();
 
@@ -214,7 +225,7 @@ void ColourSchemePanel::onDeleteColourSchemeClick(wxCommandEvent&) {
   saveColourSchemes();
 }
 
-void ColourSchemePanel::loadColourSchemes() {
+void ColourSchemePage::loadColourSchemes() {
   m_filePath = userDataPath("colour_schemes.xml");
 
   for (auto entry : PRESETS) {
@@ -239,7 +250,7 @@ void ColourSchemePanel::loadColourSchemes() {
   }
 }
 
-void ColourSchemePanel::onRestoreColourSchemeClick(wxCommandEvent&) {
+void ColourSchemePage::onRestoreColourSchemeClick(wxCommandEvent&) {
   string name = m_cboSelector->GetValue().ToStdString();
   m_txtCode->ChangeValue(PRESETS.at(name));
 

@@ -156,12 +156,6 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   return box;
 }
 
-ColourSchemePanel* MainWindow::constructColourSchemePanel(wxWindow* parent) {
-  return new ColourSchemePanel(parent, [this](const string& code) {
-    applyColourScheme(code);
-  });
-}
-
 wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, "");
 
@@ -328,14 +322,10 @@ void MainWindow::constructParamsPage() {
 }
 
 void MainWindow::constructColourSchemePage() {
-  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
+  auto page = new ColourSchemePage(m_rightPanel, [this](const string& code) {
+    applyColourScheme(code);
+  });
   m_rightPanel->AddPage(page, wxGetTranslation("Colours"));
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructColourSchemePanel(page), 1, wxEXPAND | wxLEFT | wxRIGHT,
-            10);
-
-  page->SetSizer(vbox);
 }
 
 void MainWindow::constructExportPage() {
@@ -428,7 +418,7 @@ uint8_t* MainWindow::beginExport(int w, int h) {
   m_export.progressBar->Show();
   m_export.btnExport->Disable();
   m_params.btnApply->Disable();
-  m_colourSchemePanel->disable();
+  m_colourSchemePage->disable();
   m_canvas->disable();
   SetStatusText(wxGetTranslation("Exporting to file..."));
 
@@ -467,7 +457,7 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
   m_export.progressBar->Hide();
   m_export.btnExport->Enable();
   m_params.btnApply->Enable();
-  m_colourSchemePanel->enable();
+  m_colourSchemePage->enable();
   m_canvas->enable();
   SetStatusText(wxGetTranslation("Export complete"));
 
