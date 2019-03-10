@@ -2,10 +2,6 @@
 #include <iomanip>
 #include <wx/gbsizer.h>
 #include <wx/richtext/richtextctrl.h>
-#include <wx/file.h>
-#include <wx/filename.h>
-#include <wx/dir.h>
-#include <wx/xml/xml.h>
 #include "main_window.hpp"
 #include "config.hpp"
 #include "exception.hpp"
@@ -160,84 +156,10 @@ wxStaticBox* MainWindow::constructInfoPanel(wxWindow* parent) {
   return box;
 }
 
-wxStaticBox* MainWindow::constructColourSchemePanel(wxWindow* parent) {
-  loadColourSchemes();
-
-  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  box->SetSizer(vbox);
-
-  wxFont codeFontNormal(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
-                        wxFONTWEIGHT_NORMAL);
-  wxFont codeFontBold(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
-                      wxFONTWEIGHT_BOLD);
-
-  auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
-    "vec3 computeColour(int i, float x, float y) {");
-  txtShaderCodePre->SetFont(codeFontBold);
-
-  m_colourScheme.cboSelector = new wxComboBox(box, wxID_ANY);
-  std::vector<wxString> names;
-  for (auto entry : m_colourScheme.colourSchemes) {
-    names.push_back(entry.first);
-  }
-  m_colourScheme.cboSelector->Insert(names, 0);
-  m_colourScheme.cboSelector->SetStringSelection(DEFAULT_COLOUR_SCHEME);
-  m_colourScheme.cboSelector->Bind(wxEVT_COMBOBOX,
-                                   &MainWindow::onSelectColourScheme, this);
-  m_colourScheme.cboSelector->Bind(wxEVT_TEXT,
-                                   &MainWindow::onColourSchemeNameChange, this);
-
-  m_colourScheme.txtCode = constructTextBox(box,
-                                            PRESETS.at(DEFAULT_COLOUR_SCHEME),
-                                            true, false, true);
-  m_colourScheme.txtCode->SetFont(codeFontNormal);
-
-  auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
-  txtShaderCodePost->SetFont(codeFontBold);
-
-  m_colourScheme.txtCompileStatus = constructTextBox(box, wxEmptyString, true,
-                                                     true, true);
-  m_colourScheme.txtCompileStatus->SetFont(codeFontNormal);
-  m_colourScheme.txtCompileStatus->SetEditable(false);
-  m_colourScheme.txtCompileStatus->SetMinSize(wxSize(0, 80));
-
-  m_colourScheme.btnDelete = new wxButton(box, wxID_ANY,
-                                          wxGetTranslation("Delete"));
-  m_colourScheme.btnDelete->Bind(wxEVT_BUTTON,
-                                 &MainWindow::onDeleteColourSchemeClick,
-                                 this);
-  m_colourScheme.btnDelete->Hide();
-
-  m_colourScheme.btnRestore = new wxButton(box, wxID_ANY,
-                                           wxGetTranslation("Restore"));
-  m_colourScheme.btnRestore->Bind(wxEVT_BUTTON,
-                                  &MainWindow::onRestoreColourSchemeClick,
-                                  this);
-
-  m_colourScheme.btnSave = new wxButton(box, wxID_ANY,
-                                        wxGetTranslation("Save"));
-  m_colourScheme.btnSave->Bind(wxEVT_BUTTON,
-                               &MainWindow::onSaveColourSchemeClick, this);
-
-  wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
-  hbox->AddStretchSpacer(1);
-  hbox->Add(m_colourScheme.btnDelete, 0, wxRIGHT, 5);
-  hbox->Add(m_colourScheme.btnRestore, 0, wxRIGHT, 5);
-  hbox->Add(m_colourScheme.btnSave, 0, wxRIGHT, 0);
-
-  vbox->AddSpacer(10);
-  vbox->Add(m_colourScheme.cboSelector, 0,
-            wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
-  vbox->Add(txtShaderCodePre, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(m_colourScheme.txtCode, 2, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  vbox->Add(txtShaderCodePost, 0, wxLEFT | wxRIGHT, 10);
-  vbox->Add(hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  vbox->Add(m_colourScheme.txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT,
-            10);
-
-  return box;
+ColourSchemePanel* MainWindow::constructColourSchemePanel(wxWindow* parent) {
+  return new ColourSchemePanel(parent, [this](const string& code) {
+    applyColourScheme(code);
+  });
 }
 
 wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
@@ -506,9 +428,7 @@ uint8_t* MainWindow::beginExport(int w, int h) {
   m_export.progressBar->Show();
   m_export.btnExport->Disable();
   m_params.btnApply->Disable();
-  m_colourScheme.btnDelete->Disable();
-  m_colourScheme.btnRestore->Disable();
-  m_colourScheme.btnSave->Disable();
+  m_colourSchemePanel->disable();
   m_canvas->disable();
   SetStatusText(wxGetTranslation("Exporting to file..."));
 
@@ -547,9 +467,7 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
   m_export.progressBar->Hide();
   m_export.btnExport->Enable();
   m_params.btnApply->Enable();
-  m_colourScheme.btnDelete->Enable();
-  m_colourScheme.btnRestore->Enable();
-  m_colourScheme.btnSave->Enable();
+  m_colourSchemePanel->enable();
   m_canvas->enable();
   SetStatusText(wxGetTranslation("Export complete"));
 
@@ -598,159 +516,9 @@ void MainWindow::onApplyParamsClick(wxCommandEvent&) {
   m_canvas->refresh();
 }
 
-void MainWindow::applyColourScheme() {
-  try {
-    string name = m_colourScheme.cboSelector->GetValue().ToStdString();
-    string code = m_colourScheme.txtCode->GetValue().ToStdString();
-    m_renderer->setColourSchemeImpl(code);
-    m_canvas->refresh();
-    m_colourScheme.txtCompileStatus->SetValue(wxGetTranslation("Success"));
-    m_colourScheme.colourSchemes[name] = code;
-  }
-  catch (const ShaderException& e) {
-    m_colourScheme.txtCompileStatus->SetValue(e.errorOutput());
-  }
-}
-
-void MainWindow::selectColourScheme(int idx) {
-  auto& cbo = *m_colourScheme.cboSelector;
-  assert(idx >= 0 && idx < static_cast<int>(cbo.GetCount()));
-
-  wxString name = cbo.GetString(idx);
-  cbo.SetSelection(idx);
-
-  wxCommandEvent e;
-  e.SetString(name);
-  onSelectColourScheme(e);
-}
-
-void MainWindow::selectColourScheme(const wxString& name) {
-  wxCommandEvent e;
-  int idx = m_colourScheme.cboSelector->FindString(name);
-
-  if (idx != wxNOT_FOUND) {
-    m_colourScheme.cboSelector->SetSelection(idx);
-    e.SetString(name);
-  }
-  else {
-    m_colourScheme.cboSelector->SetSelection(0);
-    e.SetString(m_colourScheme.cboSelector->GetString(0));
-  }
-
-  onColourSchemeNameChange(e);
-  onSelectColourScheme(e);
-}
-
-void MainWindow::onColourSchemeNameChange(wxCommandEvent&) {
-  wxString scheme = m_colourScheme.cboSelector->GetValue();
-  bool isPreset = PRESETS.count(scheme.ToStdString()) == 1;
-
-  m_colourScheme.btnDelete->Show(!isPreset);
-  m_colourScheme.btnRestore->Show(isPreset);
-
-  m_colourScheme.btnDelete->GetParent()->Layout();
-}
-
-void MainWindow::onSelectColourScheme(wxCommandEvent& e) {
-  string scheme = e.GetString().ToStdString();
-  m_colourScheme.txtCode->SetValue(m_colourScheme.colourSchemes.at(scheme));
-  applyColourScheme();
-}
-
-static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
-  wxXmlDocument doc;
-  auto root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "colour_schemes");
-  
-  for (auto entry : schemes) {
-    const wxString& name = entry.first;
-    const wxString& code = entry.second;
-
-    auto xmlColourScheme = new wxXmlNode(root, wxXML_ELEMENT_NODE,
-                                         "colour_scheme");
-
-    xmlColourScheme->AddAttribute("name", name);
-    xmlColourScheme->AddChild(new wxXmlNode(nullptr, wxXML_TEXT_NODE, "code",
-                                            code));
-  }
-
-  doc.SetRoot(root);
-  return doc;
-}
-
-void MainWindow::saveColourSchemes() {
-  if (!wxFile::Exists(m_colourScheme.filePath)) {
-    wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-  }
-
-  wxXmlDocument doc = colourSchemesToXmlDoc(m_colourScheme.colourSchemes);
-  doc.Save(m_colourScheme.filePath);
-}
-
-void MainWindow::onSaveColourSchemeClick(wxCommandEvent&) {
-  string name = m_colourScheme.cboSelector->GetValue().ToStdString();
-  string code = m_colourScheme.txtCode->GetValue().ToStdString();
-  m_colourScheme.colourSchemes[name] = code;
-
-  updateColourSchemeSelector();
-  saveColourSchemes();
-}
-
-void MainWindow::updateColourSchemeSelector() {
-  auto& cbo = *m_colourScheme.cboSelector;
-  wxString name = cbo.GetValue();
-
-  std::vector<wxString> names;
-  for (auto entry : m_colourScheme.colourSchemes) {
-    names.push_back(entry.first);
-  }
-  cbo.Clear();
-  cbo.Insert(names, 0);
-
-  selectColourScheme(name);
-}
-
-void MainWindow::onDeleteColourSchemeClick(wxCommandEvent&) {
-  auto& cbo = *m_colourScheme.cboSelector;
-  string name = cbo.GetValue().ToStdString();
-
-  assert(PRESETS.count(name) == 0);
-
-  m_colourScheme.colourSchemes.erase(name);
-  updateColourSchemeSelector();
-  saveColourSchemes();
-}
-
-void MainWindow::loadColourSchemes() {
-  m_colourScheme.filePath = userDataPath("colour_schemes.xml");
-
-  for (auto entry : PRESETS) {
-    m_colourScheme.colourSchemes.insert(entry);
-  }
-
-  if (wxFile::Exists(m_colourScheme.filePath)) {
-    wxXmlDocument doc;
-    doc.Load(m_colourScheme.filePath);
-
-    auto xmlColourScheme = doc.GetRoot()->GetChildren();
-    while (xmlColourScheme) {
-      wxString name = xmlColourScheme->GetAttribute("name");
-
-      auto xmlCode = xmlColourScheme->GetChildren();
-      wxString code = xmlCode->GetContent();
-
-      m_colourScheme.colourSchemes[name.ToStdString()] = code.ToStdString();
-
-      xmlColourScheme = xmlColourScheme->GetNext();
-    }
-  }
-}
-
-void MainWindow::onRestoreColourSchemeClick(wxCommandEvent&) {
-  string name = m_colourScheme.cboSelector->GetValue().ToStdString();
-  m_colourScheme.txtCode->ChangeValue(PRESETS.at(name));
-
-  applyColourScheme();
-  saveColourSchemes();
+void MainWindow::applyColourScheme(const std::string& code) {
+  m_renderer->setColourSchemeImpl(code);
+  m_canvas->refresh();
 }
 
 void MainWindow::onFlyThroughModeToggle(wxCommandEvent& e) {
