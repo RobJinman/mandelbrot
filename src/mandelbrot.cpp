@@ -2,6 +2,7 @@
 #include "exception.hpp"
 #include "render_utils.hpp"
 #include "utils.hpp"
+#include "defaults.hpp"
 
 #define INIT_GUARD \
   if (!m_initialised) { \

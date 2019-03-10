@@ -5,8 +5,6 @@
 #include "gl.hpp"
 
 extern const std::map<std::string, std::string> PRESETS;
-const int DEFAULT_MAX_ITERATIONS = 100;
-const std::string DEFAULT_COLOUR_SCHEME = "coloured";
 
 class OfflineRenderStatus {
   friend class Mandelbrot;

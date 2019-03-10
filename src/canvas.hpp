@@ -6,10 +6,6 @@
 #include <wx/wx.h>
 #include "gl.hpp"
 
-const double DEFAULT_TARGET_FPS = 10.0;
-const double DEFAULT_ZOOM_PER_FRAME = 1.025;
-const double DEFAULT_ZOOM = 1.2;
-
 class Renderer;
 
 class Canvas : public wxGLCanvas {
@@ -69,4 +65,4 @@ enum ToggleStatus {
   TOGGLED_ON = 1
 };
 
-wxDECLARE_EVENT(FLY_THROUGH_MODE_TOGGLED, wxCommandEvent);
+wxDECLARE_EVENT(FLY_THROUGH_MODE_TOGGLE_EVENT, wxCommandEvent);

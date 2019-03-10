@@ -2,10 +2,11 @@
 #include "exception.hpp"
 #include "renderer.hpp"
 #include "wx_helpers.hpp"
+#include "defaults.hpp"
 
 namespace chrono = std::chrono;
 
-wxDEFINE_EVENT(FLY_THROUGH_MODE_TOGGLED, wxCommandEvent);
+wxDEFINE_EVENT(FLY_THROUGH_MODE_TOGGLE_EVENT, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(Canvas, wxGLCanvas)
   EVT_PAINT(Canvas::onPaint)
@@ -102,7 +103,7 @@ void Canvas::activateFlyThroughMode() {
   m_timer->Start(1000.0 / m_targetFps);
   m_flyThroughMode = true;
 
-  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLED);
+  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLE_EVENT);
   event.SetInt(TOGGLED_ON);
   wxPostEvent(this, event);
 }
@@ -111,7 +112,7 @@ void Canvas::deactivateFlyThroughMode() {
   m_timer->Stop();
   m_flyThroughMode = false;
 
-  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLED);
+  wxCommandEvent event(FLY_THROUGH_MODE_TOGGLE_EVENT);
   event.SetInt(TOGGLED_OFF);
   wxPostEvent(this, event);
 }

@@ -13,6 +13,8 @@ const int WINDOW_H = 600;
 
 class ColourSchemePage;
 class InfoPage;
+class ParamsPage;
+class ApplyParamsEvent;
 
 class MainWindow : public wxFrame {
 public:
@@ -22,10 +24,6 @@ private:
   void constructMenu();
   void constructLeftPanel();
   void constructRightPanel();
-  wxStaticBox* constructInfoPanel(wxWindow* parent);
-  wxStaticBox* constructRenderParamsPanel(wxWindow* parent);
-  wxStaticBox* constructFlyThroughParamsPanel(wxWindow* parent);
-  wxStaticBox* constructDataPanel(wxWindow* parent);
   wxStaticBox* constructExportPanel(wxWindow* parent);
   void constructInfoPage();
   void constructParamsPage();
@@ -42,7 +40,7 @@ private:
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
-  void onApplyParamsClick(wxCommandEvent& e);
+  void onApplyParams(ApplyParamsEvent& e);
   void onExportClick(wxCommandEvent& e);
   void onCanvasResize(wxSizeEvent& e);
   void onExportHeightChange(wxCommandEvent& e);
@@ -60,14 +58,7 @@ private:
   Canvas* m_canvas;
   ColourSchemePage* m_colourSchemePage;
   InfoPage* m_infoPage;
-  
-  struct {
-    wxTextCtrl* txtMaxIterations;
-    wxTextCtrl* txtZoomAmount;
-    wxTextCtrl* txtTargetFps;
-    wxTextCtrl* txtZoomPerFrame;
-    wxButton* btnApply;
-  } m_params;
+  ParamsPage* m_paramsPage;
 
   struct {
     bool busy = false;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <wx/wx.h>
 #include <wx/notebook.h>
 

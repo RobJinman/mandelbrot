@@ -8,6 +8,7 @@
 #include "utils.hpp"
 #include "colour_scheme_page.hpp"
 #include "info_page.hpp"
+#include "params_page.hpp"
 
 using std::string;
 
@@ -16,14 +17,6 @@ static const long MIN_EXPORT_WIDTH = 10;
 static const long MAX_EXPORT_WIDTH = 10000;
 static const long MIN_EXPORT_HEIGHT = 10;
 static const long MAX_EXPORT_HEIGHT = 10000;
-static const long MIN_ITERATIONS = 1;
-static const long MAX_ITERATIONS = 10000;
-static const double MIN_ZOOM_AMOUNT = 1.0;
-static const double MAX_ZOOM_AMOUNT = 1000.0;
-static const double MIN_TARGET_FPS = 0.1;
-static const double MAX_TARGET_FPS = 60.0;
-static const double MIN_ZOOM_PER_FRAME = 0.0001;
-static const double MAX_ZOOM_PER_FRAME = 10.0;
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
@@ -86,69 +79,13 @@ void MainWindow::constructLeftPanel() {
 
   m_canvas = new Canvas(m_leftPanel, glAttrs, *m_renderer,
                         [this]() { onRender(); });
-  m_canvas->Bind(FLY_THROUGH_MODE_TOGGLED, &MainWindow::onFlyThroughModeToggle,
-                 this);
+  m_canvas->Bind(FLY_THROUGH_MODE_TOGGLE_EVENT,
+                 &MainWindow::onFlyThroughModeToggle, this);
   m_canvas->Bind(wxEVT_SIZE, &MainWindow::onCanvasResize, this);
   m_canvas->Bind(wxEVT_SET_FOCUS, &MainWindow::onCanvasGainFocus, this);
   m_canvas->Bind(wxEVT_KILL_FOCUS, &MainWindow::onCanvasLoseFocus, this);
 
   vbox->Add(m_canvas, 1, wxEXPAND | wxALL, 5);
-}
-
-wxStaticBox* MainWindow::constructRenderParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, "");
-
-  auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
-
-  auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
-  string strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
-  m_params.txtMaxIterations = constructTextBox(box, strMaxI);
-  m_params.txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
-  auto lblZoomAmount = constructLabel(box,
-                                      wxGetTranslation("Zoom amount"));
-  m_params.txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
-  m_params.txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_params.txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_params.txtZoomAmount, 0, wxEXPAND | wxRIGHT, 10);
-
-  grid->AddGrowableCol(0);
-
-  return box;
-}
-
-wxStaticBox* MainWindow::constructFlyThroughParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Fly-Through Mode"));
-
-  auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
-
-  auto strFps = std::to_string(DEFAULT_TARGET_FPS);
-  auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
-  m_params.txtTargetFps = constructTextBox(box, strFps);
-  m_params.txtTargetFps->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-
-  auto strZoom = std::to_string(DEFAULT_ZOOM_PER_FRAME);
-  auto lblZoom = constructLabel(box, wxGetTranslation("Zoom per frame"));
-  m_params.txtZoomPerFrame = constructTextBox(box, strZoom);
-  m_params.txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_params.txtTargetFps, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_params.txtZoomPerFrame, 0, wxEXPAND | wxRIGHT, 10);
-
-  grid->AddGrowableCol(0);
-
-  return box;
 }
 
 wxStaticBox* MainWindow::constructExportPanel(wxWindow* parent) {
@@ -198,20 +135,10 @@ void MainWindow::constructInfoPage() {
 }
 
 void MainWindow::constructParamsPage() {
-  auto page = new wxNotebookPage(m_rightPanel, wxID_ANY);
+  auto page = new ParamsPage(m_rightPanel);
+  page->Bind(APPLY_PARAMS_EVENT, &MainWindow::onApplyParams, this);
+
   m_rightPanel->AddPage(page, wxGetTranslation("Parameters"));
-
-  m_params.btnApply = new wxButton(page, wxID_ANY, wxGetTranslation("Apply"));
-  m_params.btnApply->Bind(wxEVT_BUTTON, &MainWindow::onApplyParamsClick, this);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructRenderParamsPanel(page), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
-  vbox->Add(constructFlyThroughParamsPanel(page), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
-  vbox->Add(m_params.btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
-
-  page->SetSizer(vbox);
 }
 
 void MainWindow::constructColourSchemePage() {
@@ -307,7 +234,7 @@ void MainWindow::onRender() {
 uint8_t* MainWindow::beginExport(int w, int h) {
   m_export.progressBar->Show();
   m_export.btnExport->Disable();
-  m_params.btnApply->Disable();
+  m_paramsPage->disable();
   m_colourSchemePage->disable();
   m_canvas->disable();
   SetStatusText(wxGetTranslation("Exporting to file..."));
@@ -346,7 +273,7 @@ void MainWindow::endExport(const wxString& exportFilePath, int w, int h,
 
   m_export.progressBar->Hide();
   m_export.btnExport->Enable();
-  m_params.btnApply->Enable();
+  m_paramsPage->enable();
   m_colourSchemePage->enable();
   m_canvas->enable();
   SetStatusText(wxGetTranslation("Export complete"));
@@ -373,25 +300,11 @@ void MainWindow::onExportClick(wxCommandEvent&) {
   endExport(exportFilePath, w, h, data);
 }
 
-void MainWindow::onApplyParamsClick(wxCommandEvent&) {
-  long maxI = getBoundedValue<long>(*m_params.txtMaxIterations, MIN_ITERATIONS,
-                                    MAX_ITERATIONS);
-  m_renderer->setMaxIterations(maxI);
-
-  double zoomAmount = getBoundedValue<double>(*m_params.txtZoomAmount,
-                                              MIN_ZOOM_AMOUNT,
-                                              MAX_ZOOM_AMOUNT);
-  m_canvas->setZoomAmount(zoomAmount);
-
-  double targetFps = getBoundedValue<double>(*m_params.txtTargetFps,
-                                             MIN_TARGET_FPS,
-                                             MAX_TARGET_FPS);
-  m_canvas->setTargetFps(targetFps);
-
-  double zoomPerFrame = getBoundedValue<double>(*m_params.txtZoomPerFrame,
-                                                MIN_ZOOM_PER_FRAME,
-                                                MAX_ZOOM_PER_FRAME);
-  m_canvas->setZoomPerFrame(zoomPerFrame);
+void MainWindow::onApplyParams(ApplyParamsEvent& e) {
+  m_renderer->setMaxIterations(e.maxI);
+  m_canvas->setZoomAmount(e.zoomAmount);
+  m_canvas->setTargetFps(e.targetFps);
+  m_canvas->setZoomPerFrame(e.zoomPerFrame);
 
   m_canvas->refresh();
 }

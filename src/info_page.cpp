@@ -1,6 +1,5 @@
 #include <wx/richtext/richtextctrl.h>
 #include "info_page.hpp"
-#include "mandelbrot.hpp"
 #include "utils.hpp"
 #include "wx_helpers.hpp"
 #include "renderer.hpp"

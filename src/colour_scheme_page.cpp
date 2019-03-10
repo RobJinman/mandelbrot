@@ -4,7 +4,7 @@
 #include <wx/xml/xml.h>
 #include "colour_scheme_page.hpp"
 #include "wx_helpers.hpp"
-#include "mandelbrot.hpp"
+#include "defaults.hpp"
 #include "exception.hpp"
 #include "utils.hpp"
 
