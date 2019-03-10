@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <wx/stdpaths.h>
 #include "utils.hpp"
 #include "config.hpp"

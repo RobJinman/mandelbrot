@@ -13,6 +13,8 @@ const int WINDOW_H = 600;
 
 class ColourSchemePage;
 class InfoPage;
+class ExportPage;
+class ExportEvent;
 class ParamsPage;
 class ApplyParamsEvent;
 
@@ -24,49 +26,39 @@ private:
   void constructMenu();
   void constructLeftPanel();
   void constructRightPanel();
-  wxStaticBox* constructExportPanel(wxWindow* parent);
   void constructInfoPage();
   void constructParamsPage();
   void constructColourSchemePage();
   void constructExportPage();
 
   void onRender();
-  void adjustExportSize(bool adjustWidth);
   void makeGlContextCurrent();
+  void applyColourScheme(const std::string& code);
   uint8_t* beginExport(int w, int h);
   void endExport(const wxString& exportFilePath, int w, int h, uint8_t* data);
-  void applyColourScheme(const std::string& code);
 
   void onExit(wxCommandEvent& e);
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
   void onApplyParams(ApplyParamsEvent& e);
-  void onExportClick(wxCommandEvent& e);
+  void onExport(ExportEvent& e);
   void onCanvasResize(wxSizeEvent& e);
-  void onExportHeightChange(wxCommandEvent& e);
-  void onExportWidthChange(wxCommandEvent& e);
   void onCanvasGainFocus(wxFocusEvent& e);
   void onCanvasLoseFocus(wxFocusEvent& e);
   void onClose(wxCloseEvent& e);
 
   bool m_quitting = false;
+  bool m_doingExport = false;
   std::unique_ptr<Renderer> m_renderer;
-  wxSplitterWindow* m_splitter;
-  wxBoxSizer* m_vbox;
-  wxNotebook* m_rightPanel;
-  wxPanel* m_leftPanel;
-  Canvas* m_canvas;
-  ColourSchemePage* m_colourSchemePage;
-  InfoPage* m_infoPage;
-  ParamsPage* m_paramsPage;
-
-  struct {
-    bool busy = false;
-    wxTextCtrl* txtWidth;
-    wxTextCtrl* txtHeight;
-    wxButton* btnExport;
-    wxGauge* progressBar;
-  } m_export;
+  wxSplitterWindow* m_splitter = nullptr;
+  wxBoxSizer* m_vbox = nullptr;
+  wxNotebook* m_rightPanel = nullptr;
+  wxPanel* m_leftPanel = nullptr;
+  Canvas* m_canvas = nullptr;
+  ColourSchemePage* m_colourSchemePage = nullptr;
+  InfoPage* m_infoPage = nullptr;
+  ParamsPage* m_paramsPage = nullptr;
+  ExportPage* m_exportPage = nullptr;
 
   wxDECLARE_EVENT_TABLE();
 };
