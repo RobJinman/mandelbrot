@@ -28,12 +28,6 @@ static const double MAX_TARGET_FPS = 60.0;
 static const double MIN_ZOOM_PER_FRAME = 0.0001;
 static const double MAX_ZOOM_PER_FRAME = 10.0;
 
-static string formatDouble(double d) {
-  std::stringstream ss;
-  ss << std::scientific << d;
-  return ss.str();
-}
-
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU(wxID_EXIT, MainWindow::onExit)
   EVT_MENU(wxID_ABOUT, MainWindow::onAbout)
@@ -727,7 +721,7 @@ void MainWindow::onDeleteColourSchemeClick(wxCommandEvent&) {
 }
 
 void MainWindow::loadColourSchemes() {
-  m_colourScheme.filePath = joinPaths(userDataPath("colour_schemes.xml"));
+  m_colourScheme.filePath = userDataPath("colour_schemes.xml");
 
   for (auto entry : PRESETS) {
     m_colourScheme.colourSchemes.insert(entry);
