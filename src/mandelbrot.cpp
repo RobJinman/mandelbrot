@@ -20,31 +20,31 @@ using std::string;
 
 const std::map<string, string> PRESETS = {
   {
-    "monochrome",
+    "Monochrome",
 
     "float c = float(i) / float(u_maxIterations);\n"
     "return vec3(c, c, c);\n"
   },
   {
-    "coloured",
+    "Coloured",
 
     "float c = float(i) / float(u_maxIterations);\n"
     "return (1.0 - c) * hueToRgb(c);\n"
   },
   {
-    "spacey",
+    "Spacey",
 
     "float c = float(i) / float(u_maxIterations);\n"
     "return 0.7 * c * c * hueToRgb(c * 0.5 + 0.65);\n"
   },
   {
-    "jazzy",
+    "Jazzy",
 
     "float c = float(i) / float(u_maxIterations);\n"
     "return (1.0 - c) * hueToRgb(c * 10.0);\n"
   },
   {
-    "rainbow",
+    "Rainbow",
 
     "float c = float(i) / float(u_maxIterations);\n"
     "float r = sqrt(x * x + y * y) / 2.0;\n"

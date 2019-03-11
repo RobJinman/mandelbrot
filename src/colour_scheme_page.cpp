@@ -135,14 +135,9 @@ void ColourSchemePage::selectColourScheme(const wxString& name) {
   wxCommandEvent e;
   int idx = m_cboSelector->FindString(name);
 
-  if (idx != wxNOT_FOUND) {
-    m_cboSelector->SetSelection(idx);
-    e.SetString(name);
-  }
-  else {
-    m_cboSelector->SetSelection(0);
-    e.SetString(m_cboSelector->GetString(0));
-  }
+  assert(idx != wxNOT_FOUND);
+  m_cboSelector->SetSelection(idx);
+  e.SetString(name);
 
   onColourSchemeNameChange(e);
   onSelectColourScheme(e);
@@ -206,6 +201,8 @@ void ColourSchemePage::onSaveColourSchemeClick(wxCommandEvent&) {
 
   updateColourSchemeSelector();
   saveColourSchemes();
+
+  selectColourScheme(name);
 }
 
 void ColourSchemePage::updateColourSchemeSelector() {
@@ -219,7 +216,8 @@ void ColourSchemePage::updateColourSchemeSelector() {
   cbo.Clear();
   cbo.Insert(names, 0);
 
-  selectColourScheme(name);
+  int idx = cbo.FindString(name, true);
+  cbo.SetSelection(idx);
 }
 
 void ColourSchemePage::onDeleteColourSchemeClick(wxCommandEvent&) {
