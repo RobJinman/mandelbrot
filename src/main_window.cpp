@@ -7,6 +7,7 @@
 #include "colour_scheme_page.hpp"
 #include "info_page.hpp"
 #include "params_page.hpp"
+#include "locations_page.hpp"
 #include "export_page.hpp"
 
 using std::string;
@@ -102,6 +103,11 @@ void MainWindow::constructColourSchemePage() {
   m_rightPanel->AddPage(m_colourSchemePage, wxGetTranslation("Colours"));
 }
 
+void MainWindow::constructLocationsPage() {
+  m_locationsPage = new LocationsPage(m_rightPanel);
+  m_rightPanel->AddPage(m_locationsPage, wxGetTranslation("Locations"));
+}
+
 void MainWindow::constructExportPage() {
   m_exportPage = new ExportPage(m_rightPanel);
   m_exportPage->Bind(EXPORT_EVENT, &MainWindow::onExport, this);
@@ -114,6 +120,7 @@ void MainWindow::constructRightPanel() {
   constructInfoPage();
   constructParamsPage();
   constructColourSchemePage();
+  constructLocationsPage();
   constructExportPage();
 }
 

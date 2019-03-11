@@ -17,6 +17,7 @@ class ExportPage;
 class ExportEvent;
 class ParamsPage;
 class ApplyParamsEvent;
+class LocationsPage;
 
 class MainWindow : public wxFrame {
 public:
@@ -29,6 +30,7 @@ private:
   void constructInfoPage();
   void constructParamsPage();
   void constructColourSchemePage();
+  void constructLocationsPage();
   void constructExportPage();
 
   void onRender();
@@ -58,6 +60,7 @@ private:
   ColourSchemePage* m_colourSchemePage = nullptr;
   InfoPage* m_infoPage = nullptr;
   ParamsPage* m_paramsPage = nullptr;
+  LocationsPage* m_locationsPage = nullptr;
   ExportPage* m_exportPage = nullptr;
 
   wxDECLARE_EVENT_TABLE();

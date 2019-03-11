@@ -39,8 +39,9 @@ ExportPage::ExportPage(wxWindow* parent)
 wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
   auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
 
-  auto grid = new wxGridBagSizer;
-  box->SetSizer(grid);
+  auto vbox = new wxBoxSizer(wxVERTICAL);
+  auto grid = new wxFlexGridSizer(2);
+  box->SetSizer(vbox);
 
   auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
   m_txtWidth = constructTextBox(box, wxEmptyString);
@@ -58,19 +59,18 @@ wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
 
   m_progressBar = new wxGauge(box, wxID_ANY, 100);
 
-  grid->Add(lblWidth, wxGBPosition(0, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtWidth, wxGBPosition(0, 1), wxGBSpan(1, 1),
-            wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblHeight, wxGBPosition(1, 0), wxGBSpan(1, 1), wxLEFT | wxRIGHT,
-            10);
-  grid->Add(m_txtHeight, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
-            10);
-  grid->Add(m_btnExport, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxRIGHT,
-            10);
-  grid->Add(m_progressBar, wxGBPosition(3, 0), wxGBSpan(1, 2),
-            wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
+  grid->Add(lblWidth, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtWidth, 0, wxEXPAND | wxRIGHT, 10);
+  grid->Add(lblHeight, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+  grid->Add(m_txtHeight, 0, wxEXPAND | wxRIGHT, 10);
+  grid->AddSpacer(10);
+  grid->Add(m_btnExport, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
+
+  vbox->Add(grid, 0, wxEXPAND | wxBOTTOM, 10);
+  vbox->Add(m_progressBar, 0,
+            wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
   m_progressBar->Hide();
 
