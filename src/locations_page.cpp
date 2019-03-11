@@ -162,6 +162,10 @@ void LocationsPage::loadLocations() {
 }
 
 void LocationsPage::saveLocations() {
+  if (!wxFile::Exists(m_filePath)) {
+    wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+  }
+
   wxXmlDocument doc;
   auto root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "locations");
 

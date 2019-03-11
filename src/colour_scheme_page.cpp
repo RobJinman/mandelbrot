@@ -165,11 +165,15 @@ void ColourSchemePage::onSelectColourScheme(wxCommandEvent& e) {
   applyColourScheme();
 }
 
-static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
+void ColourSchemePage::saveColourSchemes() {
+  if (!wxFile::Exists(m_filePath)) {
+    wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+  }
+
   wxXmlDocument doc;
   auto root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "colour_schemes");
 
-  for (auto entry : schemes) {
+  for (auto entry : m_colourSchemes) {
     const wxString& name = entry.first;
     const wxString& code = entry.second;
 
@@ -182,15 +186,6 @@ static wxXmlDocument colourSchemesToXmlDoc(const StringMap& schemes) {
   }
 
   doc.SetRoot(root);
-  return doc;
-}
-
-void ColourSchemePage::saveColourSchemes() {
-  if (!wxFile::Exists(m_filePath)) {
-    wxDir::Make(userDataPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-  }
-
-  wxXmlDocument doc = colourSchemesToXmlDoc(m_colourSchemes);
   doc.Save(m_filePath);
 }
 
