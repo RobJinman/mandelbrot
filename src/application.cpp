@@ -29,9 +29,9 @@ bool Application::OnInit() {
 
 void Application::HandleEvent(wxEvtHandler* handler, wxEventFunction func,
                           wxEvent& event) const {
-    doWithLogging([this, handler, &func, &event]() {
-      wxApp::HandleEvent(handler, func, event);
-    });
+  doWithLogging([this, handler, &func, &event]() {
+    wxApp::HandleEvent(handler, func, event);
+  });
 }
 
 wxIMPLEMENT_APP(Application);

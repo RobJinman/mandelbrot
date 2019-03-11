@@ -53,7 +53,7 @@ ParamsPage::ParamsPage(wxWindow* parent)
 }
 
 wxStaticBox* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, "");
+  auto box = new wxStaticBox(parent, wxID_ANY, wxGetTranslation("General"));
 
   auto grid = new wxFlexGridSizer(2);
   box->SetSizer(grid);

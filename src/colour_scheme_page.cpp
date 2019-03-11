@@ -96,6 +96,8 @@ void ColourSchemePage::enable() {
   m_btnDelete->Enable();
   m_btnRestore->Enable();
   m_btnSave->Enable();
+
+  showHideButtons();
 }
 
 void ColourSchemePage::disable() {
@@ -146,7 +148,7 @@ void ColourSchemePage::selectColourScheme(const wxString& name) {
   onSelectColourScheme(e);
 }
 
-void ColourSchemePage::onColourSchemeNameChange(wxCommandEvent&) {
+void ColourSchemePage::showHideButtons() {
   wxString scheme = m_cboSelector->GetValue();
   bool isPreset = PRESETS.count(scheme.ToStdString()) == 1;
 
@@ -156,8 +158,12 @@ void ColourSchemePage::onColourSchemeNameChange(wxCommandEvent&) {
   m_btnDelete->GetParent()->Layout();
 }
 
+void ColourSchemePage::onColourSchemeNameChange(wxCommandEvent&) {
+  showHideButtons();
+}
+
 void ColourSchemePage::onSelectColourScheme(wxCommandEvent& e) {
-  onColourSchemeNameChange(e);
+  showHideButtons();
 
   string scheme = e.GetString().ToStdString();
   m_txtCode->SetValue(m_colourSchemes.at(scheme));

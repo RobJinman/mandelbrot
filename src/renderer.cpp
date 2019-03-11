@@ -204,14 +204,19 @@ void Renderer::makeSelectionRect(double x, double y, double w, double h) {
                            sizeof(GLfloat) * 4 * FLOATS_PER_RECT, verts));
 }
 
-void Renderer::zoom(double x, double y, double mag) {
+void Renderer::graphSpaceZoom(double x, double y, double mag) {
   m_fnMakeGlContextCurrent();
-  m_brot.zoom(x, y, mag);
+  m_brot.graphSpaceZoom(x, y, mag);
 }
 
-void Renderer::zoom(double x0, double y0, double x1, double y1) {
+void Renderer::screenSpaceZoom(double x, double y, double mag) {
   m_fnMakeGlContextCurrent();
-  m_brot.zoom(x0, y0, x1, y1);
+  m_brot.screenSpaceZoom(x, y, mag);
+}
+
+void Renderer::screenSpaceZoom(double x0, double y0, double x1, double y1) {
+  m_fnMakeGlContextCurrent();
+  m_brot.screenSpaceZoom(x0, y0, x1, y1);
 }
 
 void Renderer::resetZoom() {

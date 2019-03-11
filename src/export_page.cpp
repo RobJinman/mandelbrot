@@ -49,8 +49,7 @@ wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
   m_txtWidth->Bind(wxEVT_TEXT, &ExportPage::onExportWidthChange, this);
 
   auto lblHeight = constructLabel(box, wxGetTranslation("Height"));
-  m_txtHeight = constructTextBox(box,
-                                 std::to_string(DEFAULT_EXPORT_HEIGHT));
+  m_txtHeight = constructTextBox(box, std::to_string(DEFAULT_EXPORT_HEIGHT));
   m_txtHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   m_txtHeight->Bind(wxEVT_TEXT, &ExportPage::onExportHeightChange, this);
 
@@ -59,6 +58,8 @@ wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
 
   m_progressBar = new wxGauge(box, wxID_ANY, 100);
 
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblWidth, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtWidth, 0, wxEXPAND | wxRIGHT, 10);
   grid->Add(lblHeight, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
@@ -122,8 +123,8 @@ void ExportPage::setBusy(bool busy) {
 }
 
 void ExportPage::onExportClick(wxCommandEvent&) {
-  wxFileDialog fileDialog(this, wxGetTranslation("Save as BMP image"), "",
-                          "", "BMP files (*.bmp)|*.bmp", wxFD_SAVE);
+  wxFileDialog fileDialog(this, wxGetTranslation("Save as BMP image"), "", "",
+                          "BMP files (*.bmp)|*.bmp", wxFD_SAVE);
   if (fileDialog.ShowModal() == wxID_CANCEL) {
     return;
   }

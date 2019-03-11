@@ -105,6 +105,8 @@ void MainWindow::constructColourSchemePage() {
 
 void MainWindow::constructLocationsPage() {
   m_locationsPage = new LocationsPage(m_rightPanel);
+  m_locationsPage->Bind(APPLY_LOCATION_EVENT, &MainWindow::onApplyLocation,
+                        this);
   m_rightPanel->AddPage(m_locationsPage, wxGetTranslation("Locations"));
 }
 
@@ -159,6 +161,7 @@ void MainWindow::onCanvasResize(wxSizeEvent& e) {
 
 void MainWindow::onRender() {
   m_infoPage->onRender(*m_renderer);
+  m_locationsPage->onRender(*m_renderer);
 }
 
 uint8_t* MainWindow::beginExport(int w, int h) {
@@ -220,6 +223,12 @@ void MainWindow::onApplyParams(ApplyParamsEvent& e) {
   m_canvas->setTargetFps(e.targetFps);
   m_canvas->setZoomPerFrame(e.zoomPerFrame);
 
+  m_canvas->refresh();
+}
+
+void MainWindow::onApplyLocation(ApplyLocationEvent& e) {
+  m_renderer->resetZoom();
+  m_renderer->graphSpaceZoom(e.x, e.y, e.magnification);
   m_canvas->refresh();
 }
 

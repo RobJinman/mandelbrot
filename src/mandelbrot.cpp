@@ -312,7 +312,26 @@ void Mandelbrot::setMaxIterations(int maxI) {
   updateUniforms();
 }
 
-void Mandelbrot::zoom(double x, double y, double mag) {
+void Mandelbrot::graphSpaceZoom(double x, double y, double mag) {
+  INIT_GUARD
+
+  auto& rp = m_renderParams;
+
+  double xRange = rp.xmax - rp.xmin;
+  double yRange = rp.ymax - rp.ymin;
+
+  double xRangeNew = xRange / mag;
+  double yRangeNew = yRange / mag;
+
+  rp.xmin = x - 0.5 * xRangeNew;
+  rp.xmax = x + 0.5 * xRangeNew;
+  rp.ymin = y - 0.5 * yRangeNew;
+  rp.ymax = y + 0.5 * yRangeNew;
+
+  updateUniforms();
+}
+
+void Mandelbrot::screenSpaceZoom(double x, double y, double mag) {
   INIT_GUARD
 
   auto& rp = m_renderParams;
@@ -325,20 +344,10 @@ void Mandelbrot::zoom(double x, double y, double mag) {
   double centreX = rp.xmin + xRange * x / rp.w;
   double centreY = rp.ymin + yRange * y / rp.h;
 
-  double sf = mag;
-
-  double xRangeNew = xRange / sf;
-  double yRangeNew = yRange / sf;
-
-  rp.xmin = centreX - 0.5 * xRangeNew;
-  rp.xmax = centreX + 0.5 * xRangeNew;
-  rp.ymin = centreY - 0.5 * yRangeNew;
-  rp.ymax = centreY + 0.5 * yRangeNew;
-
-  updateUniforms();
+  graphSpaceZoom(centreX, centreY, mag);
 }
 
-void Mandelbrot::zoom(double x0, double y0, double x1, double y1) {
+void Mandelbrot::screenSpaceZoom(double x0, double y0, double x1, double y1) {
   INIT_GUARD
 
   auto& rp = m_renderParams;

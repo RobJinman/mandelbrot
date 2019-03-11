@@ -23,6 +23,7 @@ private:
   void selectColourScheme(int idx);
   void applyColourScheme();
   void updateColourSchemeSelector();
+  void showHideButtons();
 
   void onDeleteColourSchemeClick(wxCommandEvent& e);
   void onRestoreColourSchemeClick(wxCommandEvent& e);

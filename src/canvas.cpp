@@ -70,7 +70,7 @@ void Canvas::setZoomAmount(double zoom) {
 void Canvas::onTick(wxTimerEvent&) {
   if (m_flyThroughMode) {
     auto p = dampenCursorPos(getCursorPos());
-    m_renderer.zoom(p.x, p.y, m_zoomPerFrame);
+    m_renderer.screenSpaceZoom(p.x, p.y, m_zoomPerFrame);
   }
 
   refresh();
@@ -134,7 +134,7 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
     int x1 = x0 + m_selectionRect.width;
     int y1 = y0 + m_selectionRect.height;
 
-    m_renderer.zoom(x0, y0, x1, y1);
+    m_renderer.screenSpaceZoom(x0, y0, x1, y1);
   }
 
   m_renderer.drawSelectionRect(0, 0, 0, 0);
@@ -177,12 +177,12 @@ void Canvas::onKeyPress(wxKeyEvent& e) {
   }
   else if (key == 'I') {
     auto sz = GetClientSize();
-    m_renderer.zoom(sz.x / 2, sz.y / 2, m_zoomAmount);
+    m_renderer.screenSpaceZoom(sz.x / 2, sz.y / 2, m_zoomAmount);
     refresh();
   }
   else if (key == 'O') {
     auto sz = GetClientSize();
-    m_renderer.zoom(sz.x / 2, sz.y / 2, 1.0 / m_zoomAmount);
+    m_renderer.screenSpaceZoom(sz.x / 2, sz.y / 2, 1.0 / m_zoomAmount);
     refresh();
   }
 }

@@ -18,6 +18,7 @@ class ExportEvent;
 class ParamsPage;
 class ApplyParamsEvent;
 class LocationsPage;
+class ApplyLocationEvent;
 
 class MainWindow : public wxFrame {
 public:
@@ -43,6 +44,7 @@ private:
   void onAbout(wxCommandEvent& e);
   void onFlyThroughModeToggle(wxCommandEvent& e);
   void onApplyParams(ApplyParamsEvent& e);
+  void onApplyLocation(ApplyLocationEvent& e);
   void onExport(ExportEvent& e);
   void onCanvasResize(wxSizeEvent& e);
   void onCanvasGainFocus(wxFocusEvent& e);
