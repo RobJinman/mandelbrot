@@ -56,6 +56,9 @@ private:
   std::unique_ptr<wxBitmap> m_background;
   bool m_mouseDown = false;
   wxRect m_selectionRect;
+#ifdef WIN32
+  bool m_disableRender = false;
+#endif
 
   wxDECLARE_EVENT_TABLE();
 };
