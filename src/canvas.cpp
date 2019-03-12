@@ -77,8 +77,9 @@ void Canvas::onTick(wxTimerEvent&) {
 }
 
 void Canvas::onResize(wxSizeEvent& e) {
-  resize();
   e.Skip();
+
+  resize();
 }
 
 void Canvas::resize() {
@@ -118,6 +119,8 @@ void Canvas::deactivateFlyThroughMode() {
 }
 
 void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
+  e.Skip();
+
   SetFocus();
   SetCurrent(*m_context);
 
@@ -125,7 +128,9 @@ void Canvas::onLeftMouseBtnDown(wxMouseEvent& e) {
   m_selectionRect = wxRect(e.GetPosition(), wxSize(0, 0));
 }
 
-void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
+void Canvas::onLeftMouseBtnUp(wxMouseEvent& e) {
+  e.Skip();
+
   m_mouseDown = false;
 
   if (selectionSizeAboveThreshold(m_selectionRect.GetSize())) {
@@ -141,7 +146,9 @@ void Canvas::onLeftMouseBtnUp(wxMouseEvent&) {
   refresh();
 }
 
-void Canvas::onMouseMove(wxMouseEvent&) {
+void Canvas::onMouseMove(wxMouseEvent& e) {
+  e.Skip();
+
   if (m_mouseDown) {
     wxPoint p = wxGetMousePosition() - GetScreenPosition();
     wxPoint sz_p = p - m_selectionRect.GetTopLeft();
@@ -158,6 +165,8 @@ void Canvas::onMouseMove(wxMouseEvent&) {
 }
 
 void Canvas::onKeyPress(wxKeyEvent& e) {
+  e.Skip();
+
   auto key = e.GetKeyCode();
 
   if (key == 'F') {
@@ -222,20 +231,12 @@ void Canvas::makeGlContextCurrent() {
 }
 
 void Canvas::refresh() {
-  Refresh();
+  Refresh(false);
   Update();
 }
 
 void Canvas::onPaint(wxPaintEvent&) {
   wxPaintDC dc(this);
-
-  if (!m_renderer.isInitialised()) {
-    SetCurrent(*m_context);
-    auto sz = GetSize();
-
-    m_renderer.initialise(sz.x, sz.y);
-  }
-
   render(dc);
 }
 
@@ -245,6 +246,14 @@ void Canvas::render(wxDC&) {
   }
 
   SetCurrent(*m_context);
+
+  if (!m_renderer.isInitialised()) {
+    auto sz = GetSize();
+    m_renderer.initialise(sz.x, sz.y);
+
+    PostSizeEvent();
+  }
+
   m_renderer.clear(255, 255, 255);
 
   if (m_disabled) {

@@ -140,23 +140,27 @@ void MainWindow::constructMenu() {
   SetMenuBar(menuBar);
 }
 
-void MainWindow::onCanvasGainFocus(wxFocusEvent&) {
+void MainWindow::onCanvasGainFocus(wxFocusEvent& e) {
+  e.Skip();
+
   m_leftPanel->SetBackgroundColour(*wxBLUE);
   Refresh();
 }
 
-void MainWindow::onCanvasLoseFocus(wxFocusEvent&) {
+void MainWindow::onCanvasLoseFocus(wxFocusEvent& e) {
+  e.Skip();
+
   m_leftPanel->SetBackgroundColour(*wxLIGHT_GREY);
   Refresh();
 }
 
 void MainWindow::onCanvasResize(wxSizeEvent& e) {
+  e.Skip();
+
   if (m_exportPage) {
     m_exportPage->onCanvasSizeChange(m_canvas->GetClientSize().x,
                                      m_canvas->GetClientSize().y);
   }
-
-  e.Skip();
 }
 
 void MainWindow::onRender() {
