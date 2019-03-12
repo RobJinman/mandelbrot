@@ -36,6 +36,8 @@ LocationsPage::LocationsPage(wxWindow* parent)
   vbox->Add(constructCurrentPanel(this), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(constructFavouritesPanel(this), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
+  updateFavouritesSelector();
+
   SetSizer(vbox);
 }
 
@@ -84,7 +86,6 @@ wxStaticBox* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
   m_cboFavourites = new wxComboBox(box, wxID_ANY);
   m_cboFavourites->Bind(wxEVT_TEXT, &LocationsPage::onLocationTextChange, this);
   m_cboFavourites->Bind(wxEVT_COMBOBOX, &LocationsPage::onSelectLocation, this);
-  updateFavouritesSelector();
 
   m_btnDelete = new wxButton(box, wxID_ANY, wxGetTranslation("Delete"));
   m_btnDelete->Bind(wxEVT_BUTTON, &LocationsPage::onDeleteClick, this);
