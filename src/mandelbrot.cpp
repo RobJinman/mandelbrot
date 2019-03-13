@@ -126,10 +126,6 @@ void Mandelbrot::reset() {
                   static_cast<double>(m_renderParams.h);
   m_renderParams.xmax = m_renderParams.xmin + aspect *
                         (m_renderParams.ymax - m_renderParams.ymin);
-
-  INIT_GUARD
-
-  updateUniforms();
 }
 
 void Mandelbrot::resize(int w, int h) {
@@ -142,13 +138,6 @@ void Mandelbrot::resize(int w, int h) {
 
   m_renderParams.w = w;
   m_renderParams.h = h;
-
-  INIT_GUARD
-
-  GL_CHECK(glUseProgram(m_program.id));
-  GL_CHECK(glViewport(0, 0, w, h));
-
-  updateUniforms();
 }
 
 GLuint Mandelbrot::renderToTexture(int w, int h) {
@@ -201,8 +190,6 @@ void Mandelbrot::renderStripToMainMemoryBuffer(uint8_t* buffer) {
   rp.ymax = rp.ymin + stripH_gph;
   GL_CHECK(glViewport(0, 0, s.w, stripH));
 
-  updateUniforms();
-
   GLuint texture = renderToTexture(s.w, stripH);
 
   GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
@@ -223,11 +210,7 @@ const OfflineRenderStatus& Mandelbrot::continueOfflineRender() {
 
   if (s.stripsDrawn == s.totalStrips) {
     s.progress = 100;
-
     m_renderParams = m_renderParamsBackup;
-    GL_CHECK(glViewport(0, 0, m_renderParams.w, m_renderParams.h));
-
-    updateUniforms();
   }
 
   return m_offlineRenderStatus;
@@ -268,11 +251,9 @@ void Mandelbrot::setColourSchemeImpl(const string& computeColourImpl) {
   try {
     GL_CHECK(glDeleteProgram(m_program.id));
     compileProgram_(computeColourImpl);
-    updateUniforms();
   }
   catch (const ShaderException&) {
     compileProgram_(m_activeComputeColourImpl);
-    updateUniforms();
     throw;
   }
 }
@@ -306,15 +287,10 @@ void Mandelbrot::updateUniforms() {
 }
 
 void Mandelbrot::setMaxIterations(int maxI) {
-  INIT_GUARD
-
   m_renderParams.maxIterations = maxI;
-  updateUniforms();
 }
 
 void Mandelbrot::graphSpaceZoom(double x, double y, double mag) {
-  INIT_GUARD
-
   auto& rp = m_renderParams;
 
   double xRange = rp.xmax - rp.xmin;
@@ -327,13 +303,9 @@ void Mandelbrot::graphSpaceZoom(double x, double y, double mag) {
   rp.xmax = x + 0.5 * xRangeNew;
   rp.ymin = y - 0.5 * yRangeNew;
   rp.ymax = y + 0.5 * yRangeNew;
-
-  updateUniforms();
 }
 
 void Mandelbrot::screenSpaceZoom(double x, double y, double mag) {
-  INIT_GUARD
-
   auto& rp = m_renderParams;
 
   y = rp.h - 1 - y;
@@ -348,8 +320,6 @@ void Mandelbrot::screenSpaceZoom(double x, double y, double mag) {
 }
 
 void Mandelbrot::screenSpaceZoom(double x0, double y0, double x1, double y1) {
-  INIT_GUARD
-
   auto& rp = m_renderParams;
 
   // Flip and swap
@@ -369,8 +339,6 @@ void Mandelbrot::screenSpaceZoom(double x0, double y0, double x1, double y1) {
   rp.xmax = xmax;
   rp.ymin = ymin;
   rp.ymax = ymax;
-
-  updateUniforms();
 }
 
 void Mandelbrot::drawFromTexture() {
@@ -407,6 +375,8 @@ void Mandelbrot::draw(bool fromTexture) {
 
 void Mandelbrot::render() {
   GL_CHECK(glUseProgram(m_program.id));
+  GL_CHECK(glViewport(0, 0, m_renderParams.w, m_renderParams.h));
+  updateUniforms();
 
   GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vbo));
 
