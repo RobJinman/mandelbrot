@@ -39,15 +39,15 @@ ParamsPage::ParamsPage(wxWindow* parent)
   : wxNotebookPage(parent, wxID_ANY) {
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructRenderParamsPanel(this), 1, wxEXPAND | wxLEFT | wxRIGHT,
-            10);
+  vbox->Add(constructRenderParamsPanel(this), 1,
+            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
   vbox->Add(constructFlyThroughParamsPanel(this), 1,
-            wxEXPAND | wxLEFT | wxRIGHT, 10);
+            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
 
   m_btnApply = new wxButton(this, wxID_ANY, wxGetTranslation("Apply"));
   m_btnApply->Bind(wxEVT_BUTTON, &ParamsPage::onApplyParamsClick, this);
 
-  vbox->Add(m_btnApply, 0, wxALIGN_RIGHT | wxRIGHT, 10);
+  vbox->Add(m_btnApply, 0, wxALIGN_RIGHT | wxALL, 10);
 
   SetSizer(vbox);
 }
@@ -67,12 +67,12 @@ wxStaticBox* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
   m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
   m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtZoomAmount, 0, wxEXPAND | wxRIGHT, 10);
+  grid->AddSpacer(30);
+  grid->AddSpacer(30);
+  grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtZoomAmount, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
 
   grid->AddGrowableCol(0);
 
@@ -96,12 +96,12 @@ wxStaticBox* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
   m_txtZoomPerFrame = constructTextBox(box, strZoom);
   m_txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtTargetFps, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtZoomPerFrame, 0, wxEXPAND | wxRIGHT, 10);
+  grid->AddSpacer(30);
+  grid->AddSpacer(30);
+  grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtTargetFps, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtZoomPerFrame, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
 
   grid->AddGrowableCol(0);
 

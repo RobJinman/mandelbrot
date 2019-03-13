@@ -58,20 +58,20 @@ wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
 
   m_progressBar = new wxGauge(box, wxID_ANY, 100);
 
-  grid->AddSpacer(10);
-  grid->AddSpacer(10);
-  grid->Add(lblWidth, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtWidth, 0, wxEXPAND | wxRIGHT, 10);
-  grid->Add(lblHeight, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  grid->Add(m_txtHeight, 0, wxEXPAND | wxRIGHT, 10);
+  grid->AddSpacer(20);
+  grid->AddSpacer(20);
+  grid->Add(lblWidth, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtWidth, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(lblHeight, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+  grid->Add(m_txtHeight, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
   grid->AddSpacer(10);
   grid->Add(m_btnExport, 0, wxEXPAND | wxRIGHT, 10);
 
   grid->AddGrowableCol(0);
 
   vbox->Add(grid, 0, wxEXPAND | wxBOTTOM, 10);
-  vbox->Add(m_progressBar, 0,
-            wxEXPAND | wxLEFT | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
+  vbox->Add(m_progressBar, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM |
+                              wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
   m_progressBar->Hide();
 
