@@ -38,6 +38,7 @@ LocationsPage::LocationsPage(wxWindow* parent)
             wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
   updateFavouritesSelector();
+  showHideButtons();
 
   SetSizer(vbox);
 }
@@ -94,7 +95,6 @@ wxStaticBoxSizer* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
 
   m_btnDelete = new wxButton(box, wxID_ANY, wxGetTranslation("Delete"));
   m_btnDelete->Bind(wxEVT_BUTTON, &LocationsPage::onDeleteClick, this);
-  m_btnDelete->Hide();
 
   m_btnAdd = new wxButton(box, wxID_ANY, wxGetTranslation("Add current"));
   m_btnAdd->Bind(wxEVT_BUTTON, &LocationsPage::onAddClick, this);
@@ -246,7 +246,7 @@ void LocationsPage::showHideButtons() {
   m_btnAdd->Enable(!exists && name.length() > 0);
   m_btnDelete->Show(exists);
 
-  m_btnDelete->GetParent()->Layout();
+  Layout();
 }
 
 void LocationsPage::onAddClick(wxCommandEvent&) {
