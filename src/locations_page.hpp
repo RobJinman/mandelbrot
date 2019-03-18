@@ -38,8 +38,8 @@ private:
     double magnification = 1.0;
   };
 
-  wxStaticBox* constructCurrentPanel(wxWindow* parent);
-  wxStaticBox* constructFavouritesPanel(wxWindow* parent);
+  wxStaticBoxSizer* constructCurrentPanel(wxWindow* parent);
+  wxStaticBoxSizer* constructFavouritesPanel(wxWindow* parent);
   void loadLocations();
   void saveLocations();
   void populateFields(const Location& loc);

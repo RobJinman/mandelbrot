@@ -8,24 +8,18 @@ InfoPage::InfoPage(wxWindow* parent)
   : wxNotebookPage(parent, wxID_ANY) {
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructInfoPanel(this), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
-  vbox->Add(constructDataPanel(this), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+  vbox->Add(constructInfoPanel(this), 1, wxEXPAND | wxALL, 10);
+  vbox->Add(constructDataPanel(this), 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM,
+            10);
 
   SetSizer(vbox);
 }
 
-wxStaticBox* InfoPage::constructInfoPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  box->SetSizer(vbox);
-
+wxWindow* InfoPage::constructInfoPanel(wxWindow* parent) {
   wxFont font(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                   wxFONTWEIGHT_NORMAL);
 
-  auto txtInfo = new wxRichTextCtrl(box, wxID_ANY, wxEmptyString,
+  auto txtInfo = new wxRichTextCtrl(parent, wxID_ANY, wxEmptyString,
                                     wxDefaultPosition, wxDefaultSize,
                                     wxVSCROLL | wxBORDER_NONE | wxWANTS_CHARS);
 
@@ -72,17 +66,16 @@ wxStaticBox* InfoPage::constructInfoPanel(wxWindow* parent) {
   addText("O   ", false, false, true);
   addText("Zoom out");
 
-  vbox->Add(txtInfo, 1, wxEXPAND | wxALL, 10);
-
-  return box;
+  return txtInfo;
 }
 
-wxStaticBox* InfoPage::constructDataPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Data"));
+wxStaticBoxSizer* InfoPage::constructDataPanel(wxWindow* parent) {
+  auto boxSizer = new wxStaticBoxSizer(wxVERTICAL, parent,
+                                       wxGetTranslation("Data"));
+  auto box = boxSizer->GetStaticBox();
 
   auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
+  boxSizer->Add(grid);
 
   auto lblMagLevel = constructLabel(box, wxGetTranslation("Magnification"));
   m_txtMagLevel = constructLabel(box, "");
@@ -99,8 +92,8 @@ wxStaticBox* InfoPage::constructDataPanel(wxWindow* parent) {
   auto lblYMax = constructLabel(box, "y-max");
   m_txtYMax = constructLabel(box, "");
 
-  grid->AddSpacer(30);
-  grid->AddSpacer(30);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblMagLevel, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   grid->Add(m_txtMagLevel, 0, wxEXPAND | wxRIGHT, 10);
   grid->Add(lblXMin, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
@@ -114,7 +107,7 @@ wxStaticBox* InfoPage::constructDataPanel(wxWindow* parent) {
 
   grid->AddGrowableCol(1);
 
-  return box;
+  return boxSizer;
 }
 
 void InfoPage::onRender(const Renderer& renderer) {

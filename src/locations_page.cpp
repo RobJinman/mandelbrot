@@ -33,19 +33,22 @@ LocationsPage::LocationsPage(wxWindow* parent)
   loadLocations();
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructCurrentPanel(this), 1, wxEXPAND | wxTOP, 10);
-  vbox->Add(constructFavouritesPanel(this), 1, wxEXPAND | wxTOP, 10);
+  vbox->Add(constructCurrentPanel(this), 1, wxEXPAND | wxALL, 10);
+  vbox->Add(constructFavouritesPanel(this), 1,
+            wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
   updateFavouritesSelector();
 
   SetSizer(vbox);
 }
 
-wxStaticBox* LocationsPage::constructCurrentPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxGetTranslation("Current"));
+wxStaticBoxSizer* LocationsPage::constructCurrentPanel(wxWindow* parent) {
+  auto boxSizer = new wxStaticBoxSizer(wxVERTICAL, parent,
+                      wxGetTranslation("Current"));
+  auto box = boxSizer->GetStaticBox();
 
   auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
+  boxSizer->Add(grid, 1, wxEXPAND);
 
   auto lblX = constructLabel(box, "X");
   m_txtX = constructTextBox(box, "0");
@@ -62,8 +65,8 @@ wxStaticBox* LocationsPage::constructCurrentPanel(wxWindow* parent) {
   m_btnApply = new wxButton(box, wxID_ANY, wxGetTranslation("Apply"));
   m_btnApply->Bind(wxEVT_BUTTON, &LocationsPage::onApplyClick, this);
 
-  grid->AddSpacer(30);
-  grid->AddSpacer(30);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblX, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   grid->Add(m_txtX, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
   grid->Add(lblY, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
@@ -76,11 +79,13 @@ wxStaticBox* LocationsPage::constructCurrentPanel(wxWindow* parent) {
   grid->AddGrowableCol(0);
   grid->AddGrowableCol(1);
 
-  return box;
+  return boxSizer;
 }
 
-wxStaticBox* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxGetTranslation("Favourites"));
+wxStaticBoxSizer* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
+  auto boxSizer = new wxStaticBoxSizer(wxVERTICAL, parent,
+                                       wxGetTranslation("Favourites"));
+  auto box = boxSizer->GetStaticBox();
 
   auto lblName = constructLabel(box, wxGetTranslation("Location name"));
   m_cboFavourites = new wxComboBox(box, wxID_ANY);
@@ -101,8 +106,8 @@ wxStaticBox* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
   hbox->Add(m_btnAdd, 0, wxRIGHT, 10);
 
   auto grid = new wxFlexGridSizer(2);
-  grid->AddSpacer(30);
-  grid->AddSpacer(30);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblName, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   grid->Add(m_cboFavourites, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
 
@@ -112,9 +117,10 @@ wxStaticBox* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
   auto vbox = new wxBoxSizer(wxVERTICAL);
   vbox->Add(grid, 0, wxEXPAND);
   vbox->Add(hbox, 0, wxEXPAND);
-  box->SetSizer(vbox);
 
-  return box;
+  boxSizer->Add(vbox, 1, wxEXPAND);
+
+  return boxSizer;
 }
 
 void LocationsPage::onRender(const Renderer& renderer) {

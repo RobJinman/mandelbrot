@@ -39,10 +39,9 @@ ParamsPage::ParamsPage(wxWindow* parent)
   : wxNotebookPage(parent, wxID_ANY) {
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructRenderParamsPanel(this), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+  vbox->Add(constructRenderParamsPanel(this), 1, wxEXPAND | wxALL, 10);
   vbox->Add(constructFlyThroughParamsPanel(this), 1,
-            wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+            wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
   m_btnApply = new wxButton(this, wxID_ANY, wxGetTranslation("Apply"));
   m_btnApply->Bind(wxEVT_BUTTON, &ParamsPage::onApplyParamsClick, this);
@@ -52,11 +51,13 @@ ParamsPage::ParamsPage(wxWindow* parent)
   SetSizer(vbox);
 }
 
-wxStaticBox* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxGetTranslation("General"));
+wxStaticBoxSizer* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
+  auto boxSizer = new wxStaticBoxSizer(wxVERTICAL, parent,
+                                       wxGetTranslation("General"));
+  auto box = boxSizer->GetStaticBox();
 
   auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
+  boxSizer->Add(grid, 1, wxEXPAND);
 
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
   string strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
@@ -67,8 +68,8 @@ wxStaticBox* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
   m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
   m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
-  grid->AddSpacer(30);
-  grid->AddSpacer(30);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblMaxI, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   grid->Add(m_txtMaxIterations, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
   grid->Add(lblZoomAmount, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
@@ -76,15 +77,16 @@ wxStaticBox* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
 
   grid->AddGrowableCol(0);
 
-  return box;
+  return boxSizer;
 }
 
-wxStaticBox* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY,
-                             wxGetTranslation("Fly-Through Mode"));
+wxStaticBoxSizer* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
+  auto boxSizer = new wxStaticBoxSizer(wxVERTICAL, parent,
+                                       wxGetTranslation("Fly-Through Mode"));
+  auto box = boxSizer->GetStaticBox();
 
   auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(grid);
+  boxSizer->Add(grid, 1, wxEXPAND);
 
   auto strFps = std::to_string(DEFAULT_TARGET_FPS);
   auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
@@ -96,8 +98,8 @@ wxStaticBox* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
   m_txtZoomPerFrame = constructTextBox(box, strZoom);
   m_txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
-  grid->AddSpacer(30);
-  grid->AddSpacer(30);
+  grid->AddSpacer(10);
+  grid->AddSpacer(10);
   grid->Add(lblFps, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
   grid->Add(m_txtTargetFps, 0, wxEXPAND | wxRIGHT | wxBOTTOM, 10);
   grid->Add(lblZoom, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
@@ -105,7 +107,7 @@ wxStaticBox* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
 
   grid->AddGrowableCol(0);
 
-  return box;
+  return boxSizer;
 }
 
 void ParamsPage::onApplyParamsClick(wxCommandEvent&) {

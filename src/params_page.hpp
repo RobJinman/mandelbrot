@@ -30,8 +30,8 @@ public:
   void enable();
 
 private:
-  wxStaticBox* constructRenderParamsPanel(wxWindow* parent);
-  wxStaticBox* constructFlyThroughParamsPanel(wxWindow* parent);
+  wxStaticBoxSizer* constructRenderParamsPanel(wxWindow* parent);
+  wxStaticBoxSizer* constructFlyThroughParamsPanel(wxWindow* parent);
 
   void onApplyParamsClick(wxCommandEvent& e);
 

@@ -31,7 +31,6 @@ public:
   void onCanvasSizeChange(int w, int h);
 
 private:
-  wxStaticBox* constructExportPanel(wxWindow* parent);
   uint8_t* beginExport(int w, int h);
   void endExport(const wxString& exportFilePath, int w, int h, uint8_t* data);
   void adjustExportSize(bool adjustWidth);

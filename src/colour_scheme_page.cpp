@@ -18,27 +18,17 @@ ColourSchemePage::ColourSchemePage(wxWindow* parent,
   loadColourSchemes();
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructStaticBox(this), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
-
-  SetSizer(vbox);
-}
-
-wxStaticBox* ColourSchemePage::constructStaticBox(wxNotebookPage* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
-  box->SetSizer(vbox);
 
   wxFont codeFontNormal(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                         wxFONTWEIGHT_NORMAL);
   wxFont codeFontBold(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
                       wxFONTWEIGHT_BOLD);
 
-  auto txtShaderCodePre = new wxStaticText(box, wxID_ANY,
+  auto txtShaderCodePre = new wxStaticText(this, wxID_ANY,
     "vec3 computeColour(int i, float x, float y) {");
   txtShaderCodePre->SetFont(codeFontBold);
 
-  m_cboSelector = new wxComboBox(box, wxID_ANY);
+  m_cboSelector = new wxComboBox(this, wxID_ANY);
   std::vector<wxString> names;
   for (auto entry : m_colourSchemes) {
     names.push_back(entry.first);
@@ -50,28 +40,28 @@ wxStaticBox* ColourSchemePage::constructStaticBox(wxNotebookPage* parent) {
   m_cboSelector->Bind(wxEVT_TEXT, &ColourSchemePage::onColourSchemeNameChange,
                       this);
 
-  m_txtCode = constructTextBox(box, PRESETS.at(DEFAULT_COLOUR_SCHEME), true,
+  m_txtCode = constructTextBox(this, PRESETS.at(DEFAULT_COLOUR_SCHEME), true,
                                false, true);
   m_txtCode->SetFont(codeFontNormal);
 
-  auto txtShaderCodePost = new wxStaticText(box, wxID_ANY, "}");
+  auto txtShaderCodePost = new wxStaticText(this, wxID_ANY, "}");
   txtShaderCodePost->SetFont(codeFontBold);
 
-  m_txtCompileStatus = constructTextBox(box, wxEmptyString, true, true, true);
+  m_txtCompileStatus = constructTextBox(this, wxEmptyString, true, true, true);
   m_txtCompileStatus->SetFont(codeFontNormal);
   m_txtCompileStatus->SetEditable(false);
   m_txtCompileStatus->SetMinSize(wxSize(0, 80));
 
-  m_btnDelete = new wxButton(box, wxID_ANY, wxGetTranslation("Delete"));
+  m_btnDelete = new wxButton(this, wxID_ANY, wxGetTranslation("Delete"));
   m_btnDelete->Bind(wxEVT_BUTTON, &ColourSchemePage::onDeleteColourSchemeClick,
                     this);
   m_btnDelete->Hide();
 
-  m_btnRestore = new wxButton(box, wxID_ANY, wxGetTranslation("Restore"));
+  m_btnRestore = new wxButton(this, wxID_ANY, wxGetTranslation("Restore"));
   m_btnRestore->Bind(wxEVT_BUTTON,
                      &ColourSchemePage::onRestoreColourSchemeClick, this);
 
-  m_btnSave = new wxButton(box, wxID_ANY, wxGetTranslation("Save"));
+  m_btnSave = new wxButton(this, wxID_ANY, wxGetTranslation("Save"));
   m_btnSave->Bind(wxEVT_BUTTON, &ColourSchemePage::onSaveColourSchemeClick,
                   this);
 
@@ -89,7 +79,7 @@ wxStaticBox* ColourSchemePage::constructStaticBox(wxNotebookPage* parent) {
   vbox->Add(hbox, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
   vbox->Add(m_txtCompileStatus, 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
-  return box;
+  SetSizer(vbox);
 }
 
 void ColourSchemePage::enable() {

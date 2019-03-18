@@ -16,7 +16,6 @@ public:
   void disable();
 
 private:
-  wxStaticBox* constructStaticBox(wxWindow* parent);
   void loadColourSchemes();
   void saveColourSchemes();
   void selectColourScheme(const wxString& name);

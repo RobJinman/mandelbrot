@@ -31,32 +31,23 @@ ExportPage::ExportPage(wxWindow* parent)
   : wxNotebookPage(parent, wxID_ANY) {
 
   auto vbox = new wxBoxSizer(wxVERTICAL);
-  vbox->Add(constructExportPanel(this), 1, wxEXPAND | wxLEFT | wxRIGHT, 10);
-
-  SetSizer(vbox);
-}
-
-wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
-  auto box = new wxStaticBox(parent, wxID_ANY, wxEmptyString);
-
-  auto vbox = new wxBoxSizer(wxVERTICAL);
   auto grid = new wxFlexGridSizer(2);
-  box->SetSizer(vbox);
+  SetSizer(vbox);
 
-  auto lblWidth = constructLabel(box, wxGetTranslation("Width"));
-  m_txtWidth = constructTextBox(box, wxEmptyString);
+  auto lblWidth = constructLabel(this, wxGetTranslation("Width"));
+  m_txtWidth = constructTextBox(this, wxEmptyString);
   m_txtWidth->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   m_txtWidth->Bind(wxEVT_TEXT, &ExportPage::onExportWidthChange, this);
 
-  auto lblHeight = constructLabel(box, wxGetTranslation("Height"));
-  m_txtHeight = constructTextBox(box, std::to_string(DEFAULT_EXPORT_HEIGHT));
+  auto lblHeight = constructLabel(this, wxGetTranslation("Height"));
+  m_txtHeight = constructTextBox(this, std::to_string(DEFAULT_EXPORT_HEIGHT));
   m_txtHeight->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   m_txtHeight->Bind(wxEVT_TEXT, &ExportPage::onExportHeightChange, this);
 
-  m_btnExport = new wxButton(box, wxID_ANY, wxGetTranslation("Export"));
+  m_btnExport = new wxButton(this, wxID_ANY, wxGetTranslation("Export"));
   m_btnExport->Bind(wxEVT_BUTTON, &ExportPage::onExportClick, this);
 
-  m_progressBar = new wxGauge(box, wxID_ANY, 100);
+  m_progressBar = new wxGauge(this, wxID_ANY, 100);
 
   grid->AddSpacer(20);
   grid->AddSpacer(20);
@@ -74,8 +65,6 @@ wxStaticBox* ExportPage::constructExportPanel(wxWindow* parent) {
                               wxRESERVE_SPACE_EVEN_IF_HIDDEN, 10);
 
   m_progressBar->Hide();
-
-  return box;
 }
 
 void ExportPage::onCanvasSizeChange(int w, int h) {

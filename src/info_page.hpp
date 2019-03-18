@@ -12,8 +12,8 @@ public:
   void onRender(const Renderer& renderer);
 
 private:
-  wxStaticBox* constructInfoPanel(wxWindow* parent);
-  wxStaticBox* constructDataPanel(wxWindow* parent);
+  wxWindow* constructInfoPanel(wxWindow* parent);
+  wxStaticBoxSizer* constructDataPanel(wxWindow* parent);
 
   wxStaticText* m_txtMagLevel;
   wxStaticText* m_txtXMin;
