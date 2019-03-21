@@ -41,7 +41,6 @@ private:
 
   Renderer& m_renderer;
   bool m_disabled = false;
-  wxString m_disabledMsg;
   wxTimer* m_timer = nullptr;
   std::function<void()> m_onRender;
   std::unique_ptr<wxGLContext> m_context;
@@ -53,12 +52,8 @@ private:
   double m_targetFps;
   double m_zoomPerFrame;
   double m_zoomAmount;
-  std::unique_ptr<wxBitmap> m_background;
   bool m_mouseDown = false;
   wxRect m_selectionRect;
-#ifdef WIN32
-  bool m_disableRender = false;
-#endif
 
   wxDECLARE_EVENT_TABLE();
 };

@@ -263,20 +263,7 @@ void Canvas::render(wxDC&) {
     return;
   }
 
-  // Disgusting hack to force out stale render on Windows
-#ifdef WIN32
-  m_renderer.drawMandelbrot(m_mouseDown || m_disableRender);
-
-  if (!m_disableRender) {
-    m_disableRender = true;
-    CallAfter([this]() { refresh(); });
-  }
-  else {
-    m_disableRender = false;
-  }
-#else
   m_renderer.drawMandelbrot(m_mouseDown);
-#endif
 
   if (m_mouseDown) {
     int x = m_selectionRect.x;
