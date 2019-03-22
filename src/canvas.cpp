@@ -232,7 +232,6 @@ void Canvas::makeGlContextCurrent() {
 
 void Canvas::refresh() {
   Refresh(false);
-  Update();
 }
 
 void Canvas::onPaint(wxPaintEvent&) {

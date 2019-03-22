@@ -90,6 +90,7 @@ void Renderer::clear(uint8_t r, uint8_t g, uint8_t b) {
   GLfloat g_ = static_cast<GLfloat>(g) / 255.f;
   GLfloat b_ = static_cast<GLfloat>(b) / 255.f;
 
+  GL_CHECK(glProvokingVertex(GL_FIRST_VERTEX_CONVENTION));
   GL_CHECK(glClearColor(r_, g_, b_, 1.f));
   GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
