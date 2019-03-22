@@ -19,7 +19,7 @@ const char SEPARATOR = '/';
 std::string versionString();
 std::string appDataPath(const std::string& relPath = "");
 std::string userDataPath(const std::string& relPath = "");
-std::string formatDouble(double d);
+std::string numberToString(double d, bool scientific);
 
 template <typename T_FIRST, typename ...T_REST,
           typename = std::common_type_t<T_FIRST, T_REST...>>

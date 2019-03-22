@@ -111,10 +111,10 @@ wxStaticBoxSizer* InfoPage::constructDataPanel(wxWindow* parent) {
 }
 
 void InfoPage::onRender(const Renderer& renderer) {
-  auto magLevel = formatDouble(renderer.computeMagnification());
+  auto magLevel = numberToString(renderer.computeMagnification(), true);
   m_txtMagLevel->SetLabel(magLevel);
-  m_txtXMin->SetLabel(formatDouble(renderer.getXMin()));
-  m_txtXMax->SetLabel(formatDouble(renderer.getXMax()));
-  m_txtYMin->SetLabel(formatDouble(renderer.getYMin()));
-  m_txtYMax->SetLabel(formatDouble(renderer.getYMax()));
+  m_txtXMin->SetLabel(numberToString(renderer.getXMin(), true));
+  m_txtXMax->SetLabel(numberToString(renderer.getXMax(), true));
+  m_txtYMin->SetLabel(numberToString(renderer.getYMin(), true));
+  m_txtYMax->SetLabel(numberToString(renderer.getYMax(), true));
 }

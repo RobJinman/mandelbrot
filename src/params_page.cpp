@@ -60,12 +60,12 @@ wxStaticBoxSizer* ParamsPage::constructRenderParamsPanel(wxWindow* parent) {
   boxSizer->Add(grid, 1, wxEXPAND);
 
   auto lblMaxI = constructLabel(box, wxGetTranslation("Max iterations"));
-  string strMaxI = std::to_string(DEFAULT_MAX_ITERATIONS);
+  string strMaxI = numberToString(DEFAULT_MAX_ITERATIONS, false);
   m_txtMaxIterations = constructTextBox(box, strMaxI);
   m_txtMaxIterations->SetValidator(wxTextValidator(wxFILTER_DIGITS));
   auto lblZoomAmount = constructLabel(box,
                                       wxGetTranslation("Zoom amount"));
-  m_txtZoomAmount = constructTextBox(box, std::to_string(DEFAULT_ZOOM));
+  m_txtZoomAmount = constructTextBox(box, numberToString(DEFAULT_ZOOM, false));
   m_txtZoomAmount->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
   grid->AddSpacer(10);
@@ -88,12 +88,12 @@ wxStaticBoxSizer* ParamsPage::constructFlyThroughParamsPanel(wxWindow* parent) {
   auto grid = new wxFlexGridSizer(2);
   boxSizer->Add(grid, 1, wxEXPAND);
 
-  auto strFps = std::to_string(DEFAULT_TARGET_FPS);
+  auto strFps = numberToString(DEFAULT_TARGET_FPS, false);
   auto lblFps = constructLabel(box, wxGetTranslation("Target frame rate"));
   m_txtTargetFps = constructTextBox(box, strFps);
   m_txtTargetFps->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
-  auto strZoom = std::to_string(DEFAULT_ZOOM_PER_FRAME);
+  auto strZoom = numberToString(DEFAULT_ZOOM_PER_FRAME, false);
   auto lblZoom = constructLabel(box, wxGetTranslation("Zoom per frame"));
   m_txtZoomPerFrame = constructTextBox(box, strZoom);
   m_txtZoomPerFrame->SetValidator(wxTextValidator(wxFILTER_NUMERIC));

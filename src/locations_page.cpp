@@ -90,6 +90,7 @@ wxStaticBoxSizer* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
 
   auto lblName = constructLabel(box, wxGetTranslation("Location name"));
   m_cboFavourites = new wxComboBox(box, wxID_ANY);
+  m_cboFavourites->SetHint(wxGetTranslation("New location name"));
   m_cboFavourites->Bind(wxEVT_TEXT, &LocationsPage::onLocationTextChange, this);
   m_cboFavourites->Bind(wxEVT_COMBOBOX, &LocationsPage::onSelectLocation, this);
 
@@ -124,7 +125,7 @@ wxStaticBoxSizer* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
 }
 
 void LocationsPage::onRender(const Renderer& renderer) {
-  auto magLevel = formatDouble(renderer.computeMagnification());
+  auto magLevel = numberToString(renderer.computeMagnification(), true);
   m_txtMagnification->ChangeValue(magLevel);
 
   double xMin = renderer.getXMin();
@@ -135,8 +136,8 @@ void LocationsPage::onRender(const Renderer& renderer) {
   double x = xMin + 0.5 * (xMax - xMin);
   double y = yMin + 0.5 * (yMax - yMin);
 
-  m_txtX->ChangeValue(formatDouble(x));
-  m_txtY->ChangeValue(formatDouble(y));
+  m_txtX->ChangeValue(numberToString(x, true));
+  m_txtY->ChangeValue(numberToString(y, true));
 }
 
 void LocationsPage::loadLocations() {
@@ -232,6 +233,8 @@ void LocationsPage::onSelectLocation(wxCommandEvent&) {
 
   ApplyLocationEvent event(loc.x, loc.y, loc.magnification);
   wxPostEvent(this, event);
+
+  m_cboFavourites->ChangeValue(wxEmptyString);
 }
 
 void LocationsPage::onLocationTextChange(wxCommandEvent&) {

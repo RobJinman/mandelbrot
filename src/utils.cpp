@@ -32,8 +32,11 @@ string userDataPath(const string& relPath) {
   return joinPaths(standardPaths.GetUserDataDir(), relPath);
 }
 
-string formatDouble(double d) {
+string numberToString(double d, bool scientific) {
   std::stringstream ss;
-  ss << std::scientific << d;
+  if (scientific) {
+    ss << std::scientific;
+  }
+  ss << d;
   return ss.str();
 }
