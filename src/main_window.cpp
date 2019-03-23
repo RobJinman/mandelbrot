@@ -143,6 +143,8 @@ void MainWindow::constructMenu() {
 void MainWindow::onCanvasGainFocus(wxFocusEvent& e) {
   e.Skip();
 
+  m_locationsPage->clearSelection();
+
   m_leftPanel->SetBackgroundColour(*wxBLUE);
   Refresh();
 }

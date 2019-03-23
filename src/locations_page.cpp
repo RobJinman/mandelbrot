@@ -90,7 +90,6 @@ wxStaticBoxSizer* LocationsPage::constructFavouritesPanel(wxWindow* parent) {
 
   auto lblName = constructLabel(box, wxGetTranslation("Location name"));
   m_cboFavourites = new wxComboBox(box, wxID_ANY);
-  m_cboFavourites->SetHint(wxGetTranslation("New location name"));
   m_cboFavourites->Bind(wxEVT_TEXT, &LocationsPage::onLocationTextChange, this);
   m_cboFavourites->Bind(wxEVT_COMBOBOX, &LocationsPage::onSelectLocation, this);
 
@@ -227,17 +226,23 @@ void LocationsPage::onSelectLocation(wxCommandEvent&) {
   showHideButtons();
 
   string name = m_cboFavourites->GetValue().ToStdString();
+  if (name.length() == 0) {
+    return;
+  }
 
   const Location& loc = m_locations.at(name);
   populateFields(loc);
 
   ApplyLocationEvent event(loc.x, loc.y, loc.magnification);
   wxPostEvent(this, event);
-
-  m_cboFavourites->ChangeValue(wxEmptyString);
 }
 
 void LocationsPage::onLocationTextChange(wxCommandEvent&) {
+  showHideButtons();
+}
+
+void LocationsPage::clearSelection() {
+  m_cboFavourites->ChangeValue(wxEmptyString);
   showHideButtons();
 }
 

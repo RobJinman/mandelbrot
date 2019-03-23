@@ -30,6 +30,7 @@ public:
   void onRender(const Renderer& renderer);
   void disable();
   void enable();
+  void clearSelection();
 
 private:
   struct Location {
