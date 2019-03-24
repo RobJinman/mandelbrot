@@ -3,6 +3,8 @@
 precision highp float;
 precision highp int;
 
+const float RADIUS = 10000.0;
+
 uniform float u_w;
 uniform float u_h;
 uniform int u_maxIterations;
@@ -13,7 +15,12 @@ uniform float u_ymax;
 
 layout(location = 0) out vec3 out_colour;
 
-int testPoint(vec2 p) {
+struct Result {
+  int i;
+  vec2 zn;
+};
+
+Result testPoint(vec2 p) {
   float x0 = p.x;
   float y0 = p.y;
   float x = x0;
@@ -27,12 +34,12 @@ int testPoint(vec2 p) {
     x = nextX;
     y = nextY;
 
-    if (x * x + y * y > 4.0) {
+    if (x * x + y * y > RADIUS) {
       break;
     }
   }
 
-  return i;
+  return Result(i, vec2(x, y));
 }
 
 vec2 screenToWorld(vec2 p) {
@@ -65,12 +72,12 @@ vec3 hueToRgb(float hue) {
   }
 }
 
-vec3 computeColour(int i, float x, float y) {
+vec3 computeColour(int i, int maxI, vec2 lastZ) {
 COMPUTE_COLOUR_IMPL
 }
 
 void main() {
   vec2 p = screenToWorld(gl_FragCoord.xy);
-  int i = testPoint(p);
-  out_colour = vec3(computeColour(i, p.x, p.y));
+  Result res = testPoint(p);
+  out_colour = vec3(computeColour(res.i, u_maxIterations, res.zn));
 }

@@ -25,7 +25,7 @@ ColourSchemePage::ColourSchemePage(wxWindow* parent,
                       wxFONTWEIGHT_BOLD);
 
   auto txtShaderCodePre = new wxStaticText(this, wxID_ANY,
-    "vec3 computeColour(int i, float x, float y) {");
+    "vec3 computeColour(int i, int maxI, vec2 lastZ) {");
   txtShaderCodePre->SetFont(codeFontBold);
 
   m_cboSelector = new wxComboBox(this, wxID_ANY);

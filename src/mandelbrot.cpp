@@ -22,33 +22,32 @@ const std::map<string, string> PRESETS = {
   {
     "Monochrome",
 
-    "float c = float(i) / float(u_maxIterations);\n"
+    "float c = float(i) / maxI;\n"
     "return vec3(c, c, c);\n"
   },
   {
-    "Coloured",
+    "Colour",
 
-    "float c = float(i) / float(u_maxIterations);\n"
+    "float c = float(i) / maxI;\n"
     "return (1.0 - c) * hueToRgb(c);\n"
   },
   {
-    "Spacey",
+    "Smooth Colour",
 
-    "float c = float(i) / float(u_maxIterations);\n"
-    "return 0.7 * c * c * hueToRgb(c * 0.5 + 0.65);\n"
+    "float r = sqrt(lastZ.x * lastZ.x + lastZ.y * lastZ.y);\n"
+    "if (i < maxI) {\n"
+    "  float f = i - log2(log(r));\n"
+    "  return hueToRgb(f / maxI);\n"
+    "}\n"
+    "else {\n"
+    "  return vec3(0.0, 0.0, 0.0);\n"
+    "}\n"
   },
   {
     "Jazzy",
 
-    "float c = float(i) / float(u_maxIterations);\n"
+    "float c = float(i) / maxI;\n"
     "return (1.0 - c) * hueToRgb(c * 10.0);\n"
-  },
-  {
-    "Rainbow",
-
-    "float c = float(i) / float(u_maxIterations);\n"
-    "float r = sqrt(x * x + y * y) / 2.0;\n"
-    "return (1.0 - c) * hueToRgb(c + r);\n"
   }
 };
 
