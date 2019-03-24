@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(Mandelbrot_VERSION_MAJOR 0)
 set(Mandelbrot_VERSION_MINOR 1)
+set(VERSION_STRING "${Mandelbrot_VERSION_MAJOR}.${Mandelbrot_VERSION_MINOR}")
 
 find_package(OpenGL REQUIRED)
 
@@ -148,7 +149,32 @@ set(
 )
 
 file(GLOB CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-add_executable(mandelbrot ${CPP_SOURCES})
+
+if (PLATFORM_OSX)
+  set(ICON_FILE "${CMAKE_SOURCE_DIR}/icons/mandelbrot.icns")
+
+  set(MACOSX_BUNDLE true)
+  set(MACOSX_BUNDLE_BUNDLE_NAME "Mandelbrot")
+  set(MACOSX_BUNDLE_INFO_STRING "Mandelbrot ${VERSION_STRING}")
+  set(MACOSX_BUNDLE_LONG_VERSION_STRING "${VERSION_STRING}")
+  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${VERSION_STRING}")
+  set(MACOSX_BUNDLE_BUNDLE_VERSION "${VERSION_STRING}")
+  set(MACOSX_BUNDLE_ICON_FILE "mandelbrot.icns")
+
+  set_source_files_properties(
+    "${ICON_FILE}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION Resources
+  )
+
+  add_executable(
+    mandelbrot MACOSX_BUNDLE
+    ${CPP_SOURCES}
+    ${DATA_FILES}
+    "${ICON_FILE}"
+  )
+else()
+  add_executable(mandelbrot ${CPP_SOURCES})
+endif()
 
 target_compile_options(
   mandelbrot
