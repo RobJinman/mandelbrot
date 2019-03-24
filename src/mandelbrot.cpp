@@ -37,7 +37,7 @@ const std::map<string, string> PRESETS = {
     "float r = sqrt(lastZ.x * lastZ.x + lastZ.y * lastZ.y);\n"
     "if (i < maxI) {\n"
     "  float f = i - log2(log(r));\n"
-    "  return hueToRgb(f / maxI);\n"
+    "  return hueToRgb(0.8 + f / maxI);\n"
     "}\n"
     "else {\n"
     "  return vec3(0.0, 0.0, 0.0);\n"
