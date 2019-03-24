@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(Mandelbrot_VERSION_MAJOR 0)
-set(Mandelbrot_VERSION_MINOR 1)
+set(Mandelbrot_VERSION_MINOR 2)
 set(VERSION_STRING "${Mandelbrot_VERSION_MAJOR}.${Mandelbrot_VERSION_MINOR}")
 
 find_package(OpenGL REQUIRED)
