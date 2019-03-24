@@ -169,7 +169,6 @@ if (PLATFORM_OSX)
   add_executable(
     mandelbrot MACOSX_BUNDLE
     ${CPP_SOURCES}
-    ${DATA_FILES}
     "${ICON_FILE}"
   )
 else()
@@ -188,3 +187,14 @@ target_link_libraries(mandelbrot ${ALL_LIBS})
 set_target_properties(mandelbrot PROPERTIES LINK_FLAGS "${PLATFORM_LINK_FLAGS}")
 
 file(COPY "${DATA_DIR}" DESTINATION "${PROJECT_BINARY_DIR}")
+
+if (PLATFORM_LINUX)
+  # TODO
+elseif (PLATFORM_WINDOWS)
+  # TODO
+elseif (PLATFORM_OSX)
+  install(CODE "set(DATA_DIR \"${DATA_DIR}\")")
+  install(SCRIPT "${CMAKE_MODULE_PATH}/osx_bundle.cmake")
+endif()
+
+include(InstallRequiredSystemLibraries)

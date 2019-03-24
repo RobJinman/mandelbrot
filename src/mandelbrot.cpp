@@ -73,10 +73,10 @@ OfflineRenderStatus::OfflineRenderStatus(int w, int h, int stripH)
 Mandelbrot::Mandelbrot() {
   m_renderParams.w = 100;
   m_renderParams.h = 100;
-  m_mandelbrotVertShaderPath = "data/mandelbrot_vert_shader.glsl";
-  m_mandelbrotFragShaderPath = "data/mandelbrot_frag_shader.glsl";
-  m_texVertShaderPath = "data/textured_vert_shader.glsl";
-  m_texFragShaderPath = "data/textured_frag_shader.glsl";
+  m_mandelbrotVertShaderPath = appDataPath("mandelbrot_vert_shader.glsl");
+  m_mandelbrotFragShaderPath = appDataPath("mandelbrot_frag_shader.glsl");
+  m_texVertShaderPath = appDataPath("textured_vert_shader.glsl");
+  m_texFragShaderPath = appDataPath("textured_frag_shader.glsl");
 }
 
 void Mandelbrot::initialise(int w, int h) {

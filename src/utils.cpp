@@ -14,12 +14,13 @@ string versionString() {
 
 string appDataPath(const string& relPath) {
   auto standardPaths = wxStandardPaths::Get();
+  auto dataPath = joinPaths(standardPaths.GetResourcesDir(), "data");
 
   if (relPath.empty()) {
-    return standardPaths.GetDataDir().ToStdString();
+    return dataPath;
   }
 
-  return joinPaths(standardPaths.GetDataDir(), relPath);
+  return joinPaths(dataPath, relPath);
 }
 
 string userDataPath(const string& relPath) {

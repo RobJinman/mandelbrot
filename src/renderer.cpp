@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 #include "exception.hpp"
 #include "render_utils.hpp"
+#include "utils.hpp"
 
 #define INIT_GUARD \
   if (!m_initialised) { \
@@ -21,8 +22,8 @@ Renderer::Renderer(std::function<void()> fnMakeGlContextCurrent)
   m_w = 100;
   m_h = 100;
 
-  m_vertShaderPath = "data/simple_vert_shader.glsl";
-  m_fragShaderPath = "data/simple_frag_shader.glsl";
+  m_vertShaderPath = appDataPath("simple_vert_shader.glsl");
+  m_fragShaderPath = appDataPath("simple_frag_shader.glsl");
 }
 
 void Renderer::initialise(int w, int h) {

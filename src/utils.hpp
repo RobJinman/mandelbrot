@@ -21,8 +21,7 @@ std::string appDataPath(const std::string& relPath = "");
 std::string userDataPath(const std::string& relPath = "");
 std::string numberToString(double d, bool scientific);
 
-template <typename T_FIRST, typename ...T_REST,
-          typename = std::common_type_t<T_FIRST, T_REST...>>
+template <typename T_FIRST, typename ...T_REST>
 std::string joinPaths(T_FIRST first, T_REST... rest) {
   std::vector<T_FIRST> parts{rest...};
   std::stringstream ss;
