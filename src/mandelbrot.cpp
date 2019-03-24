@@ -351,9 +351,9 @@ void Mandelbrot::drawFromTexture() {
   GL_CHECK(glEnableVertexAttribArray(1));
 
   GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-            sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
+           sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
   GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-            sizeof(GLfloat) * 5, BUFFER_OFFSET(sizeof(GLfloat) * 3)));
+           sizeof(GLfloat) * 5, BUFFER_OFFSET(sizeof(GLfloat) * 3)));
 
   GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
 
@@ -382,7 +382,7 @@ void Mandelbrot::render() {
   GL_CHECK(glEnableVertexAttribArray(0));
 
   GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-            sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
+           sizeof(GLfloat) * 5, BUFFER_OFFSET(0)));
 
   GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
 
