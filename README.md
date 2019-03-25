@@ -50,7 +50,7 @@ To build the app, from project root, run
         cd build/linux
         CXX=/usr/local/opt/llvm/bin/clang++ cmake -G "Unix Makefiles" ../..
         make -j4
-		make install
+        make install
 ```
 
 This will create an app bundle.
