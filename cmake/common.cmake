@@ -12,4 +12,6 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(PLATFORM_OSX 1)
   set(PLATFORM_NAME "osx")
+
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
 endif()
