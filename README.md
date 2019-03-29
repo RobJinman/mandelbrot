@@ -37,8 +37,8 @@ To build the app, from project root, run
 To build third-party libraries, from the project root, run
 
 ```
-        mkdir -p vendor_src/build/linux
-        cd vendor_src/build/linux
+        mkdir -p vendor_src/build/osx
+        cd vendor_src/build/osx
         CXX=/usr/local/opt/llvm/bin/clang++ cmake -G "Unix Makefiles" ../..
         make -j4
 ```
@@ -46,8 +46,8 @@ To build third-party libraries, from the project root, run
 To build the app, from project root, run
 
 ```
-        mkdir -p build/linux
-        cd build/linux
+        mkdir -p build/osx
+        cd build/osx
         CXX=/usr/local/opt/llvm/bin/clang++ cmake -G "Unix Makefiles" ../..
         make -j4
         make install
@@ -60,8 +60,8 @@ This will create an app bundle.
 To build third-party libraries, from the project root, run
 
 ```
-        mkdir vendor_src\build\linux
-        cd vendor_src\build\linux
+        mkdir vendor_src\build\windows
+        cd vendor_src\build\windows
         cmake -G "Visual Studio 15 2017 Win64" ..\..
 ```
 
@@ -71,8 +71,8 @@ target.
 To build the app, from project root, run
 
 ```
-        mkdir build\linux
-        cd build\linux
+        mkdir build\windows
+        cd build\windows
         cmake -G "Visual Studio 15 2017 Win64" ..\..
 ```
 
